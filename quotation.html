@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KMO Rack Bar Custom — ใบเสนอราคา</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0d0d0d;--yellow:#f5d000;--yellow-dim:#c9a900;
+  --gray:#888;--light:#f7f7f5;--border:#e0e0dc;
+  --font:'IBM Plex Sans Thai',sans-serif;
+}
+body{background:var(--light);font-family:var(--font);color:var(--black);min-height:100vh}
+
+.app{display:grid;grid-template-columns:390px 1fr;min-height:100vh}
+
+/* EDITOR */
+.editor{background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.editor-header{background:var(--black);padding:20px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+.editor-header .logo{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--yellow);letter-spacing:.5px;flex-shrink:0}
+.editor-header h1{font-size:14px;font-weight:600;color:var(--yellow)}
+.editor-header p{font-size:11px;color:#666;margin-top:1px}
+.editor-body{padding:20px 24px;flex:1}
+
+.section{margin-bottom:22px}
+.section-label{font-size:10px;font-weight:600;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:9px}
+.field label{display:block;font-size:11px;color:var(--gray);margin-bottom:3px;font-weight:500}
+.field input,.field textarea,.field select{width:100%;border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--font);background:#fff;color:var(--black);outline:none;transition:border .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#aaa}
+.field textarea{resize:vertical;min-height:56px;line-height:1.5}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.items-head{display:grid;grid-template-columns:1fr 52px 88px 28px;gap:6px;margin-bottom:5px}
+.items-head span{font-size:10px;color:var(--gray);font-weight:500}
+.item-row{display:grid;grid-template-columns:1fr 52px 88px 28px;gap:6px;margin-bottom:6px;align-items:start}
+.item-row input{border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:12px;font-family:var(--font);width:100%;outline:none;background:#fff;color:var(--black)}
+.item-row input:focus{border-color:#aaa}
+.item-row input[type=number]{text-align:right}
+
+.btn{border:1px solid var(--border);background:#fff;color:var(--black);padding:7px 13px;border-radius:6px;font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;font-weight:500}
+.btn:hover{background:var(--light);border-color:#bbb}
+.btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:5px;border:1px solid var(--border);background:#fff;color:#bbb;cursor:pointer;font-size:16px;line-height:1;font-family:var(--font)}
+.btn-icon:hover{color:#e55;border-color:#e55}
+.btn-add{width:100%;margin-top:4px}
+.btn-print{background:var(--yellow);color:var(--black);border-color:var(--yellow);font-weight:600;width:100%;padding:10px;margin-top:10px;font-size:13px}
+.btn-print:hover{background:var(--yellow-dim);border-color:var(--yellow-dim)}
+
+/* PREVIEW */
+.preview-area{background:var(--light);display:flex;flex-direction:column;align-items:center;padding:28px 24px;overflow-y:auto}
+.preview-label{font-size:11px;color:var(--gray);letter-spacing:.5px;margin-bottom:14px}
+
+/* QUOTATION DOC */
+.quot{background:#fff;width:100%;max-width:580px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+
+.q-head{background:var(--black);padding:18px 22px;display:flex;align-items:flex-start;gap:14px}
+.q-logo{width:52px;height:52px;border-radius:50%;border:2px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--yellow);letter-spacing:.5px;flex-shrink:0}
+.q-shop h2{color:var(--yellow);font-size:15px;font-weight:600;margin:0}
+.q-shop p{color:#888;font-size:10px;margin:3px 0 0;line-height:1.6}
+.q-badge{margin-left:auto;text-align:right}
+.q-badge h3{color:var(--yellow);font-size:17px;font-weight:600;margin:0}
+.q-badge small{color:#666;font-size:10px}
+
+.q-info{display:flex;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.cust-block p{margin:0;font-size:12px;line-height:1.75;color:#444}
+.cust-name{font-weight:600;font-size:13px;color:var(--black)!important}
+.meta-block{text-align:right;font-size:11px;color:var(--gray);min-width:140px}
+.meta-block .val{display:block;font-weight:600;font-size:12px;color:var(--black);margin-bottom:5px}
+
+.q-body{padding:14px 22px}
+table.items{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+table.items th{color:var(--gray);font-weight:500;padding:4px 0;border-bottom:1px solid var(--border);text-align:left}
+table.items th.r{text-align:right}
+table.items th.c{text-align:center}
+table.items td{padding:7px 0;color:var(--black);vertical-align:top}
+table.items td.r{text-align:right}
+table.items td.c{text-align:center}
+
+.summary{display:flex;justify-content:flex-end;margin-top:10px}
+.sum-table{font-size:12px;min-width:220px}
+.sum-table td{padding:3px 0;color:var(--gray)}
+.sum-table td.val{text-align:right;padding-left:20px;color:var(--black)}
+.sum-table .total-row td{font-size:14px;font-weight:600;color:var(--black);border-top:1px solid var(--border);padding-top:8px}
+
+.q-terms{padding:12px 22px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.term-item{font-size:11px}
+.term-item span{color:var(--gray);display:block;margin-bottom:2px}
+.term-item strong{color:var(--black);font-size:12px;font-weight:600}
+
+.q-note{margin:0 22px 12px;background:var(--light);border-radius:6px;padding:9px 13px;font-size:11px;color:#555}
+.q-note strong{color:var(--black)}
+
+.q-sign{display:flex;justify-content:space-between;padding:14px 22px;border-top:1px solid var(--border)}
+.sign-block{font-size:11px;color:var(--gray)}
+.sign-block.right{text-align:right}
+.sig-line{border-bottom:1px solid #ccc;width:130px;margin:22px 0 5px}
+.sign-block.right .sig-line{margin-left:auto}
+
+.q-accept{padding:12px 22px;border-top:1px solid var(--border);background:#fafaf8}
+.q-accept p{font-size:11px;color:var(--gray);margin-bottom:8px}
+.accept-row{display:flex;justify-content:space-between;gap:16px}
+.accept-sign{font-size:11px;color:var(--gray);flex:1}
+.accept-sign .sig-line{border-bottom:1px solid #ccc;width:100%;margin:20px 0 5px}
+
+.q-foot{background:var(--black);padding:9px 22px;display:flex;justify-content:space-between;align-items:center}
+.q-foot p{font-size:10px;color:#555}
+
+/* PRINT */
+@media print{
+  body{background:#fff}
+  .app{display:block}
+  .editor{display:none}
+  .preview-area{padding:0;background:#fff;align-items:flex-start}
+  .preview-label{display:none}
+  .quot{max-width:100%;border:none;border-radius:0;box-shadow:none}
+  .btn-print{display:none}
+  @page{margin:12mm}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="editor-header">
+      <div class="logo">KMO</div>
+      <div>
+        <h1>KMO Rack Bar Custom</h1>
+        <p>ระบบออกใบเสนอราคา</p>
+      </div>
+    </div>
+    <div class="editor-body">
+
+      <div class="section">
+        <div class="section-label">ข้อมูลเอกสาร</div>
+        <div class="field-row">
+          <div class="field"><label>เลขที่ใบเสนอราคา</label><input type="text" id="f-no" placeholder="KMO-QT-2025-001"></div>
+          <div class="field"><label>วันที่</label><input type="date" id="f-date"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>ใบเสนอราคามีผลถึง</label><input type="date" id="f-valid"></div>
+          <div class="field"><label>อ้างอิง / รุ่นรถ</label><input type="text" id="f-ref" placeholder="เช่น Honda NX500"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">ข้อมูลลูกค้า</div>
+        <div class="field"><label>ชื่อ / บริษัท</label><input type="text" id="f-cname" placeholder="ชื่อลูกค้า หรือ บริษัท จำกัด"></div>
+        <div class="field"><label>ที่อยู่</label><textarea id="f-caddr" placeholder="ที่อยู่สำหรับออกเอกสาร"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>เลขผู้เสียภาษี</label><input type="text" id="f-ctax" placeholder="0000000000000"></div>
+          <div class="field"><label>เบอร์โทร</label><input type="text" id="f-ctel" placeholder="0x-xxxx-xxxx"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">รายการสินค้า / บริการ</div>
+        <div class="items-head">
+          <span>รายการ</span><span style="text-align:center">จำนวน</span><span style="text-align:right">ราคา/หน่วย</span><span></span>
+        </div>
+        <div id="items-wrap"></div>
+        <button class="btn btn-add" onclick="addItem()">+ เพิ่มรายการ</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">ส่วนลด</div>
+        <div class="field-row">
+          <div class="field"><label>ส่วนลด (%)</label><input type="number" id="f-disc" value="0" min="0" max="100"></div>
+          <div class="field"><label>ส่วนลด (บาท)</label><input type="number" id="f-disc-bt" value="0" min="0" placeholder="ถ้ากรอกจะใช้แทน %"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">เงื่อนไข</div>
+        <div class="field-row">
+          <div class="field">
+            <label>เงื่อนไขชำระเงิน</label>
+            <select id="f-pay">
+              <option>ชำระทันที</option>
+              <option>มัดจำ 50% ที่เหลือรับงาน</option>
+              <option>มัดจำ 30% ที่เหลือรับงาน</option>
+              <option>เครดิต 7 วัน</option>
+              <option>เครดิต 15 วัน</option>
+              <option>เครดิต 30 วัน</option>
+              <option value="custom">กำหนดเอง...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>ระยะเวลาผลิต (โดยประมาณ)</label>
+            <input type="text" id="f-lead" placeholder="เช่น 7-14 วันทำการ">
+          </div>
+        </div>
+        <div class="field" id="custom-pay-wrap" style="display:none">
+          <label>ระบุเงื่อนไขชำระ</label>
+          <input type="text" id="f-pay-custom" placeholder="กรอกเงื่อนไขชำระเงิน">
+        </div>
+        <div class="field"><label>หมายเหตุ / เงื่อนไขเพิ่มเติม</label><textarea id="f-note" placeholder="เช่น ราคานี้ไม่รวมค่าจัดส่ง / งาน Custom ตามออเดอร์ สงวนสิทธิ์เปลี่ยนแปลงราคาหากวัสดุปรับขึ้น"></textarea></div>
+      </div>
+
+      <button class="btn btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-area">
+    <p class="preview-label">PREVIEW — อัปเดต real-time</p>
+    <div class="quot" id="quotation">
+
+      <div class="q-head">
+        <div class="q-logo">KMO</div>
+        <div class="q-shop">
+          <h2>KMO Rack Bar Custom</h2>
+          <p>139/136(140) เพิ่มพูนทรัพย์แยก2 ซ.ร่มเกล้า21 ถ.ร่มเกล้า<br>แขวงคลองสามประเวศ เขตลาดกระบัง กรุงเทพฯ 10520<br>LINE: KMO4307 &nbsp;|&nbsp; TEL: 062-5893189</p>
+        </div>
+        <div class="q-badge">
+          <h3>ใบเสนอราคา</h3>
+          <small>QUOTATION</small>
+        </div>
+      </div>
+
+      <div class="q-info">
+        <div class="cust-block">
+          <p class="cust-name" id="p-cname">—</p>
+          <p id="p-caddr" style="white-space:pre-line">—</p>
+          <p id="p-ctax"></p>
+          <p id="p-ctel"></p>
+        </div>
+        <div class="meta-block">
+          <span>เลขที่</span><span class="val" id="p-no">—</span>
+          <span>วันที่</span><span class="val" id="p-date">—</span>
+          <span>มีผลถึง</span><span class="val" id="p-valid">—</span>
+          <span id="p-ref-label" style="display:none">อ้างอิง</span><span class="val" id="p-ref" style="display:none"></span>
+        </div>
+      </div>
+
+      <div class="q-body">
+        <table class="items">
+          <thead>
+            <tr>
+              <th style="width:42%">รายการ</th>
+              <th class="c" style="width:12%">จำนวน</th>
+              <th class="r" style="width:23%">ราคา/หน่วย</th>
+              <th class="r" style="width:23%">รวม</th>
+            </tr>
+          </thead>
+          <tbody id="p-items"></tbody>
+        </table>
+        <div class="summary">
+          <table class="sum-table">
+            <tr><td>ราคารวม</td><td class="val" id="p-subtotal">0.00 บาท</td></tr>
+            <tr id="row-disc"><td>ส่วนลด</td><td class="val" id="p-disc-val"></td></tr>
+            <tr id="row-after" class="total-row"><td>ยอดรวมสุทธิ</td><td class="val" id="p-total">0.00 บาท</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div id="note-block" style="display:none" class="q-note">
+        <strong>หมายเหตุ:</strong> <span id="p-note"></span>
+      </div>
+
+      <div class="q-terms">
+        <div class="term-item"><span>เงื่อนไขชำระเงิน</span><strong id="p-pay">—</strong></div>
+        <div class="term-item"><span>ระยะเวลาผลิต</span><strong id="p-lead">—</strong></div>
+      </div>
+
+      <div class="q-sign">
+        <div class="sign-block">
+          <div class="sig-line"></div>
+          <p>( ................................ )</p>
+          <p>ผู้เสนอราคา</p>
+          <p>KMO Rack Bar Custom</p>
+        </div>
+        <div class="sign-block right">
+          <div class="sig-line"></div>
+          <p>( ................................ )</p>
+          <p id="p-sign-cname">ผู้อนุมัติ / ตอบรับใบเสนอราคา</p>
+        </div>
+      </div>
+
+      <div class="q-accept">
+        <p>✅ ลงนามตอบรับใบเสนอราคา (สำหรับลูกค้า)</p>
+        <div class="accept-row">
+          <div class="accept-sign"><div class="sig-line"></div><p>ลายมือชื่อ ( ............................ )</p></div>
+          <div class="accept-sign"><div class="sig-line"></div><p>วันที่ตอบรับ ................................</p></div>
+        </div>
+      </div>
+
+      <div class="q-foot">
+        <p>ขอบคุณที่ไว้วางใจ KMO Rack Bar Custom</p>
+        <p>By: ANEKSIN | LINE: KMO4307 | TEL: 062-5893189</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = n => Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const thDate = s => {
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  const mo = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return `${+d} ${mo[+m-1]} ${+y+543}`;
+};
+const g = id => document.getElementById(id);
+
+let ic = 0;
+function addItem(desc='', qty=1, price=0){
+  const id = ic++;
+  const w = g('items-wrap');
+  const el = document.createElement('div');
+  el.className='item-row'; el.id='item-'+id;
+  el.innerHTML=`<input type="text" placeholder="ชื่อรายการ / บริการ" value="${desc}" oninput="render()"><input type="number" value="${qty}" min="1" style="text-align:center" oninput="render()"><input type="number" value="${price}" min="0" style="text-align:right" oninput="render()"><button class="btn-icon" onclick="rmItem(${id})" title="ลบ">×</button>`;
+  w.appendChild(el); render();
+}
+function rmItem(id){ const el=g('item-'+id); if(el)el.remove(); render(); }
+
+g('f-pay').addEventListener('change', function(){
+  g('custom-pay-wrap').style.display = this.value==='custom' ? 'block' : 'none';
+  render();
+});
+
+function render(){
+  g('p-no').textContent = g('f-no').value || '—';
+  g('p-date').textContent = thDate(g('f-date').value);
+  g('p-valid').textContent = thDate(g('f-valid').value);
+
+  const ref = g('f-ref').value;
+  g('p-ref-label').style.display = ref ? '' : 'none';
+  g('p-ref').style.display = ref ? '' : 'none';
+  g('p-ref').textContent = ref;
+
+  g('p-cname').textContent = g('f-cname').value || '—';
+  g('p-caddr').textContent = g('f-caddr').value || '—';
+  g('p-ctax').textContent = g('f-ctax').value ? 'เลขผู้เสียภาษี: '+g('f-ctax').value : '';
+  g('p-ctel').textContent = g('f-ctel').value ? 'โทร: '+g('f-ctel').value : '';
+  g('p-sign-cname').textContent = g('f-cname').value || 'ผู้อนุมัติ / ตอบรับใบเสนอราคา';
+
+  const payVal = g('f-pay').value === 'custom' ? g('f-pay-custom').value : g('f-pay').value;
+  g('p-pay').textContent = payVal || '—';
+  g('p-lead').textContent = g('f-lead').value || '—';
+
+  // items
+  const rows = [...document.querySelectorAll('#items-wrap .item-row')];
+  let subtotal = 0;
+  const tbody = g('p-items'); tbody.innerHTML='';
+  rows.forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const desc=ins[0].value, qty=+ins[1].value||0, price=+ins[2].value||0;
+    if(!desc && !price) return;
+    const tot = qty*price; subtotal += tot;
+    const tr = document.createElement('tr');
+    tr.innerHTML=`<td>${desc}</td><td class="c">${qty}</td><td class="r">${fmt(price)}</td><td class="r">${fmt(tot)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const discPct = Math.max(0,Math.min(100,+g('f-disc').value||0));
+  const discBt = Math.max(0,+g('f-disc-bt').value||0);
+  // ถ้ากรอกบาทใช้แทน %
+  const discAmt = discBt > 0 ? discBt : subtotal*discPct/100;
+  const total = Math.max(0, subtotal - discAmt);
+
+  g('p-subtotal').textContent = fmt(subtotal)+' บาท';
+  if(discAmt > 0){
+    g('row-disc').style.display='';
+    const label = discBt > 0 ? '-'+fmt(discBt)+' บาท' : '-'+fmt(discAmt)+' บาท ('+discPct+'%)';
+    g('p-disc-val').textContent = label;
+    g('row-after').className='total-row';
+  } else {
+    g('row-disc').style.display='none';
+    g('row-after').className='total-row';
+  }
+  g('p-total').textContent = fmt(total)+' บาท';
+
+  const note = g('f-note').value;
+  g('note-block').style.display = note ? 'block' : 'none';
+  g('p-note').textContent = note;
+}
+
+// init
+const today = new Date();
+g('f-date').value = today.toISOString().split('T')[0];
+const exp = new Date(today); exp.setDate(exp.getDate()+30);
+g('f-valid').value = exp.toISOString().split('T')[0];
+g('f-no').value = 'KMO-QT-'+today.getFullYear()+'-001';
+document.querySelectorAll('input,textarea,select').forEach(el=>el.addEventListener('input',render));
+addItem('',1,0);
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KMO Rack Bar Custom — ใบเสร็จรับเงิน</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --black:#0d0d0d;--yellow:#f5d000;--yellow-dim:#c9a900;
+    --gray:#888;--light:#f7f7f5;--border:#e0e0dc;
+    --font:'IBM Plex Sans Thai','Sarabun',sans-serif;
+  }
+  body{background:var(--light);font-family:var(--font);color:var(--black);min-height:100vh}
+
+  /* ===== EDITOR SIDE ===== */
+  .app{display:grid;grid-template-columns:380px 1fr;min-height:100vh}
+
+  .editor{background:#fff;border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;overflow-y:auto}
+  .editor-header{background:var(--black);padding:20px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10}
+  .editor-header .logo-badge{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--yellow);letter-spacing:.5px}
+  .editor-header h1{font-size:14px;font-weight:600;color:var(--yellow);letter-spacing:.3px}
+  .editor-header p{font-size:11px;color:#666;margin-top:1px}
+
+  .editor-body{padding:20px 24px;flex:1}
+  .section{margin-bottom:24px}
+  .section-label{font-size:10px;font-weight:600;color:var(--gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:500}
+  .field input,.field textarea,.field select{
+    width:100%;border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;font-size:13px;font-family:var(--font);
+    background:#fff;color:var(--black);outline:none;transition:border .15s
+  }
+  .field input:focus,.field textarea:focus{border-color:#aaa}
+  .field textarea{resize:vertical;min-height:60px;line-height:1.5}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  .items-header{display:grid;grid-template-columns:1fr 56px 90px 28px;gap:6px;margin-bottom:6px}
+  .items-header span{font-size:10px;color:var(--gray);font-weight:500}
+  .item-row{display:grid;grid-template-columns:1fr 56px 90px 28px;gap:6px;margin-bottom:6px;align-items:start}
+  .item-row input{border:1px solid var(--border);border-radius:6px;padding:7px 8px;font-size:12px;font-family:var(--font);width:100%;outline:none;background:#fff;color:var(--black)}
+  .item-row input:focus{border-color:#aaa}
+  .item-row input[type=number]{text-align:right}
+
+  .btn{border:1px solid var(--border);background:#fff;color:var(--black);padding:8px 14px;border-radius:6px;font-size:12px;font-family:var(--font);cursor:pointer;transition:background .15s,border .15s;font-weight:500}
+  .btn:hover{background:var(--light);border-color:#bbb}
+  .btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:5px;border:1px solid var(--border);background:#fff;color:#bbb;cursor:pointer;font-size:14px;transition:all .15s;font-family:var(--font)}
+  .btn-icon:hover{color:#e55;border-color:#e55;background:#fff5f5}
+  .btn-add{margin-top:4px;width:100%}
+  .btn-print{background:var(--yellow);color:var(--black);border-color:var(--yellow);font-weight:600;width:100%;padding:10px;margin-top:8px;font-size:13px}
+  .btn-print:hover{background:var(--yellow-dim);border-color:var(--yellow-dim)}
+
+  /* ===== PREVIEW SIDE ===== */
+  .preview-area{background:var(--light);display:flex;flex-direction:column;align-items:center;padding:32px 24px;overflow-y:auto}
+  .preview-label{font-size:11px;color:var(--gray);letter-spacing:.5px;margin-bottom:16px;text-align:center}
+
+  /* ===== RECEIPT ===== */
+  .receipt{
+    background:#fff;width:100%;max-width:560px;
+    border:1px solid var(--border);border-radius:8px;overflow:hidden;
+  }
+  .rcpt-head{background:var(--black);padding:18px 22px;display:flex;align-items:flex-start;gap:14px}
+  .rcpt-logo{width:52px;height:52px;border-radius:50%;border:2px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--yellow);letter-spacing:.5px;flex-shrink:0}
+  .rcpt-shop h2{color:var(--yellow);font-size:15px;font-weight:600;margin:0}
+  .rcpt-shop p{color:#888;font-size:10px;margin:3px 0 0;line-height:1.6}
+  .rcpt-title-badge{margin-left:auto;text-align:right}
+  .rcpt-title-badge h3{color:var(--yellow);font-size:17px;font-weight:600;margin:0}
+  .rcpt-title-badge small{color:#666;font-size:10px}
+
+  .rcpt-info{display:flex;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--border)}
+  .cust-block p{margin:0;font-size:12px;line-height:1.7;color:#444}
+  .cust-name{font-weight:600;font-size:13px;color:var(--black) !important}
+  .meta-block{text-align:right;font-size:11px;color:var(--gray);min-width:130px}
+  .meta-block .val{display:block;font-weight:600;font-size:12px;color:var(--black);margin-bottom:4px}
+
+  .rcpt-body{padding:14px 22px}
+  .items-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+  .items-table th{color:var(--gray);font-weight:500;padding:4px 0;border-bottom:1px solid var(--border);text-align:left}
+  .items-table th.r{text-align:right}
+  .items-table th.c{text-align:center}
+  .items-table td{padding:7px 0;vertical-align:top;color:var(--black)}
+  .items-table td.r{text-align:right}
+  .items-table td.c{text-align:center}
+  .items-table .sep td{border-top:1px solid var(--border)}
+
+  .summary{display:flex;justify-content:flex-end;margin-top:10px}
+  .sum-table{font-size:12px;min-width:230px}
+  .sum-table td{padding:3px 0;color:var(--gray)}
+  .sum-table td.val{text-align:right;padding-left:20px;color:var(--black)}
+  .sum-table .total td{font-size:14px;font-weight:600;color:var(--black);border-top:1px solid var(--border);padding-top:8px}
+
+  .rcpt-note{margin:0 22px 14px;background:var(--light);border-radius:6px;padding:9px 13px;font-size:11px;color:#555}
+  .rcpt-note strong{color:var(--black)}
+
+  .rcpt-sign{display:flex;justify-content:space-between;padding:14px 22px;border-top:1px solid var(--border)}
+  .sign-block{font-size:11px;color:var(--gray)}
+  .sign-block.right{text-align:right}
+  .sign-line{border-bottom:1px solid #ccc;width:130px;margin:22px 0 5px}
+  .sign-block.right .sign-line{margin-left:auto}
+
+  .rcpt-foot{background:var(--black);padding:9px 22px;display:flex;justify-content:space-between;align-items:center}
+  .rcpt-foot p{font-size:10px;color:#555}
+
+  /* ===== PRINT ===== */
+  @media print{
+    body{background:#fff}
+    .app{display:block}
+    .editor{display:none}
+    .preview-area{padding:0;background:#fff;align-items:flex-start}
+    .preview-label{display:none}
+    .receipt{max-width:100%;border:none;border-radius:0;box-shadow:none}
+    .btn-print{display:none}
+    @page{margin:15mm}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="editor-header">
+      <div class="logo-badge">KMO</div>
+      <div>
+        <h1>KMO Rack Bar Custom</h1>
+        <p>ระบบออกใบเสร็จรับเงิน</p>
+      </div>
+    </div>
+    <div class="editor-body">
+
+      <div class="section">
+        <div class="section-label">ข้อมูลใบเสร็จ</div>
+        <div class="field-row">
+          <div class="field"><label>เลขที่ใบเสร็จ</label><input type="text" id="f-no" placeholder="KMO-2025-001"></div>
+          <div class="field"><label>วันที่</label><input type="date" id="f-date"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">ข้อมูลลูกค้า</div>
+        <div class="field"><label>ชื่อ / บริษัท</label><input type="text" id="f-cname" placeholder="ชื่อลูกค้า หรือ บริษัท จำกัด"></div>
+        <div class="field"><label>ที่อยู่</label><textarea id="f-caddr" placeholder="ที่อยู่สำหรับออกเอกสาร"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label>เลขผู้เสียภาษี</label><input type="text" id="f-ctax" placeholder="0000000000000"></div>
+          <div class="field"><label>เบอร์โทร</label><input type="text" id="f-ctel" placeholder="0x-xxxx-xxxx"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">รายการสินค้า / บริการ</div>
+        <div class="items-header">
+          <span>รายการ</span><span style="text-align:center">จำนวน</span><span style="text-align:right">ราคา/หน่วย</span><span></span>
+        </div>
+        <div id="items-wrap"></div>
+        <button class="btn btn-add" onclick="addItem()">+ เพิ่มรายการ</button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">ส่วนลด & การชำระเงิน</div>
+        <div class="field-row">
+          <div class="field"><label>ส่วนลด (%)</label><input type="number" id="f-disc" value="0" min="0" max="100"></div>
+          <div class="field"><label>มัดจำที่รับไว้ (บาท)</label><input type="number" id="f-dep" value="0" min="0"></div>
+        </div>
+        <div class="field"><label>หมายเหตุ</label><input type="text" id="f-note" placeholder="งาน Custom ตามออเดอร์ / รุ่นรถ / เงื่อนไขพิเศษ"></div>
+      </div>
+
+      <button class="btn btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
+
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-area">
+    <p class="preview-label">PREVIEW — อัปเดต real-time</p>
+    <div class="receipt" id="receipt">
+
+      <div class="rcpt-head">
+        <div class="rcpt-logo">KMO</div>
+        <div class="rcpt-shop">
+          <h2>KMO Rack Bar Custom</h2>
+          <p>139/136(140) เพิ่มพูนทรัพย์แยก2 ซ.ร่มเกล้า21 ถ.ร่มเกล้า<br>แขวงคลองสามประเวศ เขตลาดกระบัง กรุงเทพฯ 10520<br>LINE: KMO4307 &nbsp;|&nbsp; TEL: 062-5893189</p>
+        </div>
+        <div class="rcpt-title-badge">
+          <h3>ใบเสร็จรับเงิน</h3>
+          <small>RECEIPT</small>
+        </div>
+      </div>
+
+      <div class="rcpt-info">
+        <div class="cust-block">
+          <p class="cust-name" id="p-cname">—</p>
+          <p id="p-caddr" style="white-space:pre-line">—</p>
+          <p id="p-ctax"></p>
+          <p id="p-ctel"></p>
+        </div>
+        <div class="meta-block">
+          <span>เลขที่ใบเสร็จ</span>
+          <span class="val" id="p-no">—</span>
+          <span>วันที่</span>
+          <span class="val" id="p-date">—</span>
+        </div>
+      </div>
+
+      <div class="rcpt-body">
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th style="width:42%">รายการ</th>
+              <th class="c" style="width:12%">จำนวน</th>
+              <th class="r" style="width:23%">ราคา/หน่วย</th>
+              <th class="r" style="width:23%">รวม</th>
+            </tr>
+          </thead>
+          <tbody id="p-items"></tbody>
+        </table>
+        <div class="summary">
+          <table class="sum-table">
+            <tr><td>ราคารวม</td><td class="val" id="p-subtotal">0.00 บาท</td></tr>
+            <tr id="row-disc"><td>ส่วนลด</td><td class="val" id="p-disc-val"></td></tr>
+            <tr id="row-after"><td>ยอดหลังลด</td><td class="val" id="p-after"></td></tr>
+            <tr id="row-dep"><td>หักมัดจำ</td><td class="val" id="p-dep-val"></td></tr>
+            <tr class="total"><td>ยอดชำระ</td><td class="val" id="p-total">0.00 บาท</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="rcpt-note" id="note-block" style="display:none">
+        <strong>หมายเหตุ:</strong> <span id="p-note"></span>
+      </div>
+
+      <div class="rcpt-sign">
+        <div class="sign-block">
+          <div class="sign-line"></div>
+          <p>( ................................ )</p>
+          <p>ผู้รับเงิน — ANEKSIN</p>
+        </div>
+        <div class="sign-block right">
+          <div class="sign-line"></div>
+          <p>( ................................ )</p>
+          <p id="p-sign-cname">ผู้จ่ายเงิน</p>
+        </div>
+      </div>
+
+      <div class="rcpt-foot">
+        <p>ขอบคุณที่ใช้บริการ KMO Rack Bar Custom</p>
+        <p>By: ANEKSIN | LINE: KMO4307 | TEL: 062-5893189</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const fmt = n => Number(n).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const thDate = s => {
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  const mo = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return `${+d} ${mo[+m-1]} ${+y+543}`;
+};
+
+let ic = 0;
+function addItem(desc='', qty=1, price=0) {
+  const id = ic++;
+  const w = document.getElementById('items-wrap');
+  const d = document.createElement('div');
+  d.className = 'item-row'; d.id = 'item-' + id;
+  d.innerHTML = `<input type="text" placeholder="ชื่อรายการ / บริการ" value="${desc}" oninput="render()"><input type="number" value="${qty}" min="1" style="text-align:center" oninput="render()"><input type="number" value="${price}" min="0" style="text-align:right" oninput="render()"><button class="btn-icon" onclick="rmItem(${id})" title="ลบ">×</button>`;
+  w.appendChild(d); render();
+}
+function rmItem(id) { const el = document.getElementById('item-'+id); if(el) el.remove(); render(); }
+
+function render() {
+  const g = id => document.getElementById(id);
+  g('p-no').textContent = g('f-no').value || '—';
+  g('p-date').textContent = thDate(g('f-date').value);
+  g('p-cname').textContent = g('f-cname').value || '—';
+  g('p-caddr').textContent = g('f-caddr').value || '—';
+  g('p-ctax').textContent = g('f-ctax').value ? 'เลขผู้เสียภาษี: ' + g('f-ctax').value : '';
+  g('p-ctel').textContent = g('f-ctel').value ? 'โทร: ' + g('f-ctel').value : '';
+  g('p-sign-cname').textContent = g('f-cname').value || 'ผู้จ่ายเงิน';
+
+  const rows = [...document.querySelectorAll('#items-wrap .item-row')];
+  let subtotal = 0;
+  const tbody = g('p-items'); tbody.innerHTML = '';
+  rows.forEach(r => {
+    const ins = r.querySelectorAll('input');
+    const desc = ins[0].value, qty = +ins[1].value||0, price = +ins[2].value||0;
+    if (!desc && !price) return;
+    const tot = qty * price; subtotal += tot;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${desc}</td><td class="c">${qty}</td><td class="r">${fmt(price)}</td><td class="r">${fmt(tot)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const disc = Math.max(0, Math.min(100, +g('f-disc').value||0));
+  const dep = Math.max(0, +g('f-dep').value||0);
+  const discAmt = subtotal * disc / 100;
+  const afterDisc = subtotal - discAmt;
+  const total = Math.max(0, afterDisc - dep);
+
+  g('p-subtotal').textContent = fmt(subtotal) + ' บาท';
+  if (disc > 0) {
+    g('row-disc').style.display = ''; g('row-after').style.display = '';
+    g('p-disc-val').textContent = '-' + fmt(discAmt) + ' บาท (' + disc + '%)';
+    g('p-after').textContent = fmt(afterDisc) + ' บาท';
+  } else { g('row-disc').style.display='none'; g('row-after').style.display='none'; }
+  if (dep > 0) { g('row-dep').style.display=''; g('p-dep-val').textContent = '-' + fmt(dep) + ' บาท'; }
+  else { g('row-dep').style.display='none'; }
+  g('p-total').textContent = fmt(total) + ' บาท';
+
+  const note = g('f-note').value;
+  g('note-block').style.display = note ? 'block' : 'none';
+  g('p-note').textContent = note;
+}
+
+// Init
+const today = new Date();
+document.getElementById('f-date').value = today.toISOString().split('T')[0];
+document.getElementById('f-no').value = 'KMO-' + today.getFullYear() + '-001';
+document.querySelectorAll('input,textarea').forEach(el => el.addEventListener('input', render));
+addItem('', 1, 0);
+render();
+</script>
+</body>
+</html>
