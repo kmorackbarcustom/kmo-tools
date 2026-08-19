@@ -200,7 +200,7 @@ table.items td.c{text-align:center}
         <div class="field"><label>หมายเหตุ / เงื่อนไขเพิ่มเติม</label><textarea id="f-note" placeholder="เช่น ราคานี้ไม่รวมค่าจัดส่ง / งาน Custom ตามออเดอร์ สงวนสิทธิ์เปลี่ยนแปลงราคาหากวัสดุปรับขึ้น"></textarea></div>
       </div>
 
-      <button class="btn btn-print" onclick="window.print()">🖨 พิมพ์ / บันทึก PDF</button>
+      <button class="btn btn-print" onclick="printAndCommit()">🖨 พิมพ์ / บันทึก PDF</button>
 
     </div>
   </div>
@@ -386,7 +386,46 @@ const today = new Date();
 g('f-date').value = today.toISOString().split('T')[0];
 const exp = new Date(today); exp.setDate(exp.getDate()+30);
 g('f-valid').value = exp.toISOString().split('T')[0];
-g('f-no').value = 'KMO-QT-'+today.getFullYear()+'-001';
+// ponytail: เลขที่ใบเสนอราคา - ดึง/จองจาก Supabase แทน localStorage เครื่องเดียว
+// เพื่อให้เลขไม่ชนกันไม่ว่าจะเปิดจากเครื่องไหน (peek ตอนเปิดหน้า, commit จริงตอนกดพิมพ์)
+const SUPABASE_URL = 'https://xfhpwxjywqgqefbncumm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhmaHB3eGp5d3FncWVmYm5jdW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MjIxMTQsImV4cCI6MjA4ODM5ODExNH0.GRfJ8aY9FgfMw18Vld4m2R6mE2cOwUsJw3OXOJEt0is';
+const DOC_TYPE = 'quotation';
+
+async function docRpc(name, year) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ p_doc_type: DOC_TYPE, p_year: year }),
+  });
+  if (!res.ok) throw new Error(`${name} failed`);
+  return res.json();
+}
+
+function formatDocNo(seq) {
+  return 'KMO-QT-' + today.getFullYear() + '-' + String(seq).padStart(3, '0');
+}
+
+async function printAndCommit() {
+  try {
+    const seq = await docRpc('commit_next_doc_number', today.getFullYear());
+    g('f-no').value = formatDocNo(seq);
+    render();
+  } catch (err) {
+    console.error('commit_next_doc_number failed:', err);
+    alert('ดึงเลขที่จาก Supabase ไม่ได้ กรุณาใส่เลขที่เองก่อนพิมพ์ (เช็คอินเทอร์เน็ต)');
+  }
+  window.print();
+}
+
+docRpc('peek_next_doc_number', today.getFullYear())
+  .then(seq => { g('f-no').value = formatDocNo(seq); render(); })
+  .catch(err => console.error('peek_next_doc_number failed:', err));
+
 document.querySelectorAll('input,textarea,select').forEach(el=>el.addEventListener('input',render));
 addItem('',1,0);
 render();
