@@ -92,3 +92,16 @@ Local checks:
 - local HTTP `/hr/admin.html`: 200.
 
 Employee-facing portal is not enabled yet. It will use a new HR LIFF app and server-side LINE ID-token verification; existing booking/order LIFF apps will not be repurposed.
+
+## Employee rules page — 2026-10-06
+Added employee-facing `/hr/rules.html` as the highest-priority HR page.
+Visible employee page intentionally does NOT display internal workflow labels such as Draft / Legal Hold / Final.
+It shows:
+- rule title;
+- version 1.0;
+- effective date and last-updated date;
+- work schedule summary;
+- attendance / OT / leave / safety / customer property / discipline / confidentiality / CCTV / offboarding rules;
+- print / save-PDF action;
+- future acknowledgement section.
+Internal legal/compliance holds remain in back-office documentation only.

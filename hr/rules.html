@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>กฎระเบียบพนักงาน — KMO Rack Bar Custom</title>
+<meta name="description" content="กฎระเบียบพนักงาน KMO Rack Bar Custom">
+<style>
+:root{
+  --bg:#0f0f0f;--panel:#171717;--panel2:#202020;--line:#303030;
+  --text:#f5f5f2;--muted:#9a9a94;--yellow:#f5d000;--green:#12b76a;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Thai","Sarabun",system-ui,sans-serif;line-height:1.75}
+a{color:inherit}
+.wrap{max-width:920px;margin:0 auto;padding:24px 16px 72px}
+.topbar{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:18px}
+.brand{font-weight:800;letter-spacing:.03em}.muted{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 14px;border-radius:10px;text-decoration:none;font:inherit;font-weight:650;cursor:pointer}
+.btn.primary{background:var(--yellow);color:#111;border-color:var(--yellow)}
+.hero{background:linear-gradient(145deg,#1a1a1a,#121212);border:1px solid var(--line);border-radius:18px;padding:26px;margin-bottom:16px}
+.hero h1{font-size:clamp(26px,5vw,42px);line-height:1.15;margin:8px 0 10px}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.chip{background:#242424;border:1px solid #353535;border-radius:999px;padding:6px 10px;font-size:12px;color:#d9d9d3}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.summary .item{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px}
+.summary strong{display:block;font-size:18px;color:var(--yellow);margin-top:3px}
+.nav{position:sticky;top:8px;z-index:5;background:rgba(15,15,15,.92);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:13px;padding:10px;margin:16px 0;display:flex;gap:8px;overflow:auto}
+.nav a{white-space:nowrap;text-decoration:none;background:#1d1d1d;border:1px solid #2d2d2d;border-radius:999px;padding:7px 10px;font-size:12px}
+.section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin:14px 0;scroll-margin-top:82px}
+.section h2{font-size:19px;margin:0 0 12px}.section h3{font-size:15px;margin:18px 0 6px;color:#fff}
+ul,ol{margin:8px 0 0;padding-left:22px}li{margin:6px 0}
+.rule{padding:11px 12px;background:#121212;border-left:3px solid var(--yellow);border-radius:8px;margin:10px 0}
+.safe{padding:11px 12px;background:#10251a;border:1px solid #1f5138;border-radius:10px;color:#bcebd2}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+.footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+@media(max-width:760px){.summary{grid-template-columns:1fr 1fr}.topbar{align-items:flex-start}.hero{padding:20px}.section{padding:18px}}
+@media print{
+  body{background:#fff;color:#111;font-family:"Sarabun",sans-serif;font-size:11pt;line-height:1.55}
+  .wrap{max-width:none;padding:0}.topbar,.actions,.nav{display:none!important}
+  .hero,.section{background:#fff;color:#111;border:1px solid #bbb;box-shadow:none;break-inside:avoid}
+  .summary .item{background:#fff;color:#111;border:1px solid #bbb}.summary strong{color:#111}
+  .chip{background:#fff;color:#111;border:1px solid #bbb}.muted,.note,.footer{color:#555}
+  .rule{background:#fff;border-left:3px solid #111}.safe{background:#fff;color:#111;border:1px solid #777}
+  a{text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <div class="brand">KMO RACK BAR CUSTOM</div>
+      <div class="muted" style="font-size:12px">กฎระเบียบสำหรับพนักงาน</div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="../index.html">หน้าหลัก</a>
+      <button class="btn primary" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="muted" style="font-size:12px">KMO Rack Bar Custom</div>
+    <h1>กฎระเบียบพนักงาน</h1>
+    <div class="muted">แนวปฏิบัติในการทำงาน ความปลอดภัย การลา การลงเวลา และการดูแลทรัพย์สินของลูกค้าและร้าน</div>
+    <div class="meta">
+      <span class="chip">เวอร์ชัน 1.0</span>
+      <span class="chip">มีผลตั้งแต่ 6 ต.ค. 2569</span>
+      <span class="chip">ปรับปรุงล่าสุด 6 ต.ค. 2569</span>
+    </div>
+  </header>
+
+  <section class="summary" aria-label="สรุปกฎสำคัญ">
+    <div class="item"><span class="muted">เริ่มงาน</span><strong>09:00</strong></div>
+    <div class="item"><span class="muted">เลิกงาน</span><strong>18:00</strong></div>
+    <div class="item"><span class="muted">พักรวม</span><strong>1 ชม.</strong></div>
+    <div class="item"><span class="muted">วันหยุดประจำ</span><strong>อังคาร</strong></div>
+  </section>
+
+  <nav class="nav" aria-label="หัวข้อ">
+    <a href="#work">เวลางาน</a>
+    <a href="#attendance">ลงเวลา</a>
+    <a href="#ot">OT</a>
+    <a href="#leave">การลา</a>
+    <a href="#safety">ความปลอดภัย</a>
+    <a href="#customer">รถลูกค้า</a>
+    <a href="#conduct">วินัย</a>
+    <a href="#privacy">ข้อมูล/โซเชียล</a>
+    <a href="#offboarding">ลาออก</a>
+  </nav>
+
+  <section class="section" id="scope">
+    <h2>1. ขอบเขตการใช้กฎ</h2>
+    <ul>
+      <li>กฎนี้ใช้กับพนักงานของ KMO Rack Bar Custom ทุกคน</li>
+      <li>สิทธิขั้นต่ำตามกฎหมายยังคงมีผลเสมอ แม้ไม่ได้เขียนไว้ครบทุกข้อในหน้านี้</li>
+      <li>หากร้านกำหนดสวัสดิการหรือสิทธิเพิ่มเติม จะใช้ตามเงื่อนไขที่ร้านประกาศในแต่ละครั้ง</li>
+    </ul>
+  </section>
+
+  <section class="section" id="work">
+    <h2>2. เวลาทำงานและวันหยุดประจำสัปดาห์</h2>
+    <div class="rule"><strong>เวลาทำงานของร้าน: 09:00–18:00 น.</strong></div>
+    <ul>
+      <li>พักรวมไม่น้อยกว่า 1 ชั่วโมงต่อวัน โดยช่วงพักสามารถจัดตามลักษณะงานและความเหมาะสมของร้าน</li>
+      <li>วันหยุดประจำสัปดาห์คือ <strong>วันอังคาร</strong></li>
+      <li>หากมีความจำเป็นต้องทำงานในวันหยุด ต้องได้รับคำสั่งหรือการอนุมัติจากเจ้าของร้านก่อน</li>
+    </ul>
+  </section>
+
+  <section class="section" id="attendance">
+    <h2>3. การลงเวลาและการมาทำงาน</h2>
+    <ul>
+      <li>พนักงานต้องลงเวลาเข้าและออกงานผ่านระบบที่ร้านกำหนด</li>
+      <li>เวลาเริ่มงานอย่างเป็นทางการคือ 09:00 น.</li>
+      <li>ร้านให้ช่วงผ่อนผันหลัง 09:00 น. ไม่เกิน 30 นาที แต่ช่วงผ่อนผันไม่ใช่การเปลี่ยนเวลาเริ่มงาน</li>
+      <li>หลัง 09:30 น. ระบบจะบันทึกสถานะมาสาย</li>
+      <li>หากไม่มีการลงเวลาเข้าและไม่มีการลาที่ถูกต้อง ระบบอาจบันทึกเป็นขาดงานเพื่อรอตรวจสอบข้อเท็จจริง</li>
+      <li>หากลืมลงเวลาออกหรือเวลาผิด ให้ส่งคำขอแก้ไขตามระบบ โดยพนักงานแก้ข้อมูลเดิมเองไม่ได้</li>
+      <li>การมาสาย ขาดงาน หรือลืมลงเวลา ไม่ถูกหักเงินหรือปรับโดยระบบอัตโนมัติ</li>
+    </ul>
+  </section>
+
+  <section class="section" id="ot">
+    <h2>4. การทำงานล่วงเวลา (OT) และงานวันหยุด</h2>
+    <ul>
+      <li>OT ต้องได้รับคำสั่งหรืออนุมัติจากเจ้าของร้านก่อน</li>
+      <li>การอยู่ในร้านหลังเวลาเลิกงาน ไม่ถือเป็น OT โดยอัตโนมัติ ต้องมีการทำงานจริงและได้รับการตรวจสอบ</li>
+      <li>OT ที่ได้รับอนุมัติให้คิดเป็นรายชั่วโมง และต้องไม่น้อยกว่าสิทธิที่กฎหมายกำหนด</li>
+      <li>งานในวันอังคารให้บันทึกเป็นงานในวันหยุดแยกจากวันทำงานปกติ</li>
+    </ul>
+  </section>
+
+  <section class="section" id="leave">
+    <h2>5. การลา</h2>
+    <p>ร้านให้สิทธิการลาไม่น้อยกว่าสิทธิขั้นต่ำตามกฎหมาย และการยื่นคำขอเป็นขั้นตอนสำหรับจัดการงาน ไม่ใช่การตัดสิทธิตามกฎหมาย</p>
+
+    <h3>ลาป่วย</h3>
+    <ul>
+      <li>ใช้เมื่อเจ็บป่วยจริง และให้แจ้งร้านโดยเร็วที่สุดเท่าที่ทำได้</li>
+      <li>กรณีลาป่วยติดต่อกันตั้งแต่ 3 วันทำงานขึ้นไป ร้านอาจขอเอกสารทางการแพทย์ได้ตามที่กฎหมายอนุญาต</li>
+      <li>การลาป่วยหลายครั้งไม่ถือเป็นความผิดโดยอัตโนมัติ หากมีข้อสงสัยร้านจะตรวจสอบข้อเท็จจริงเป็นรายกรณี</li>
+    </ul>
+
+    <h3>ลากิจ / ลาที่ทราบล่วงหน้า</h3>
+    <ul>
+      <li>หากทราบล่วงหน้า ควรยื่นอย่างน้อย 1 วันก่อนวันลา เพื่อให้ร้านจัดงานได้</li>
+      <li>กรณีฉุกเฉินสามารถแจ้งทันทีที่สามารถแจ้งได้</li>
+    </ul>
+
+    <h3>พักร้อนและการลาอื่นตามกฎหมาย</h3>
+    <ul>
+      <li>ร้านให้สิทธิพักร้อนและการลาอื่นไม่น้อยกว่าสิทธิขั้นต่ำตามกฎหมาย</li>
+      <li>วันหยุดประเพณีจะประกาศเป็นปฏิทินประจำปีของร้าน</li>
+    </ul>
+  </section>
+
+  <section class="section" id="benefits">
+    <h2>6. ค่าจ้างและสวัสดิการ</h2>
+    <ul>
+      <li>พนักงานเป็นรายเดือน และจ่ายค่าจ้างตามรอบสิ้นเดือนของร้าน</li>
+      <li>ร้านจัดอาหารกลางวันให้พนักงาน</li>
+      <li>ที่พักหรือโบนัส หากมี ให้เป็นไปตามเงื่อนไขและการอนุมัติของร้านในแต่ละกรณี</li>
+      <li>ร้านไม่ใช้ระบบค่าปรับหรือหักค่าจ้างอัตโนมัติเป็นการลงโทษ</li>
+    </ul>
+  </section>
+
+  <section class="section" id="safety">
+    <h2>7. ความปลอดภัยและ PPE</h2>
+    <div class="safe"><strong>งานอันตรายต้องหยุดทันที หากยังไม่ได้สวม PPE ที่จำเป็นสำหรับงานนั้น</strong></div>
+    <ul>
+      <li>สวมอุปกรณ์ป้องกันให้เหมาะกับงาน เช่น หน้ากากเชื่อม แว่นตานิรภัย ถุงมือ รองเท้านิรภัย หน้ากากสำหรับงานพ่นสี และอุปกรณ์ป้องกันเสียงเมื่อจำเป็น</li>
+      <li>ห้ามใส่รองเท้าแตะ เสื้อผ้าหลวม สายห้อย หรือเครื่องประดับที่เสี่ยงพันกับเครื่องจักร</li>
+      <li>ผมยาวต้องรวบให้เรียบร้อยเมื่อต้องอยู่ใกล้เครื่องจักรหรือชิ้นส่วนหมุน</li>
+      <li>ห้ามใช้โทรศัพท์ส่วนตัว หูฟัง ดูวิดีโอ เล่นเกม หรือใช้งานโซเชียลขณะกำลังทำงานอันตราย</li>
+      <li>ห้ามทำงานขณะมึนเมาหรืออยู่ในสภาพที่ไม่พร้อมต่อการทำงานอย่างปลอดภัย และห้ามใช้ยาเสพติดผิดกฎหมาย</li>
+      <li>ห้ามสูบบุหรี่/บุหรี่ไฟฟ้า หรือทำให้เกิดประกายไฟในพื้นที่ทำงาน พื้นที่เก็บก๊าซ วัตถุไวไฟ หรือพื้นที่อันตราย</li>
+      <li>อุบัติเหตุ เหตุเกือบเกิดอุบัติเหตุ และการบาดเจ็บต้องแจ้งร้านเพื่อบันทึกและแก้ไขความเสี่ยง</li>
+    </ul>
+  </section>
+
+  <section class="section" id="customer">
+    <h2>8. รถลูกค้า ทรัพย์สิน และงานส่วนตัว</h2>
+    <ul>
+      <li>ไม่มีการนำรถลูกค้าออกทดลองขับบนถนนเป็นงานปกติของ KMO</li>
+      <li>ห้ามใช้รถหรือทรัพย์สินของลูกค้าเพื่อประโยชน์ส่วนตัว</li>
+      <li>หากเกิดความเสียหาย ให้บันทึกเหตุ เก็บหลักฐาน และตรวจสอบข้อเท็จจริงก่อนพิจารณาความรับผิด</li>
+      <li>ห้ามนำเครื่องมือ วัสดุ อะไหล่ หรือทรัพย์สินของ KMO ออกจากร้านโดยไม่ได้รับอนุญาตจากเจ้าของร้าน</li>
+      <li>งานรถส่วนตัวหรือรถของเพื่อนในพื้นที่ KMO ทำได้เฉพาะเมื่อได้รับอนุญาตจากเจ้าของร้าน และต้องไม่กระทบงานลูกค้า ความปลอดภัย หรือทรัพย์สินของร้าน</li>
+      <li>ห้ามดึงลูกค้า งาน ออเดอร์ หรือโอกาสทางธุรกิจของ KMO ไปทำรับเงินส่วนตัวโดยไม่ได้รับอนุญาต</li>
+    </ul>
+  </section>
+
+  <section class="section" id="conduct">
+    <h2>9. วินัยและพฤติกรรมในการทำงาน</h2>
+    <ul>
+      <li>ห้ามทะเลาะวิวาท ข่มขู่ คุกคาม ทำร้ายร่างกาย หรือสร้างความไม่ปลอดภัยในที่ทำงาน</li>
+      <li>การพิจารณาทางวินัยต้องดูข้อเท็จจริง ความรุนแรง หลักฐาน และกฎหมายที่เกี่ยวข้อง</li>
+      <li>แนวทางทั่วไปของร้านคือ บันทึกเหตุ → ตักเตือน → หนังสือเตือน → พิจารณาดำเนินการตามข้อบังคับและกฎหมาย</li>
+      <li>กรณีร้ายแรง ร้านอาจดำเนินการตามกฎหมายได้โดยไม่จำเป็นต้องผ่านทุกขั้น หากกฎหมายอนุญาต</li>
+      <li>สถานะในระบบ เช่น มาสาย ขาดงาน หรือคำกล่าวหาเพียงอย่างเดียว ไม่ถือเป็นคำตัดสินความผิดอัตโนมัติ</li>
+    </ul>
+  </section>
+
+  <section class="section" id="privacy">
+    <h2>10. ข้อมูลลูกค้า ความลับของร้าน และโซเชียลมีเดีย</h2>
+    <ul>
+      <li>ข้อมูลลูกค้า เช่น ชื่อ เบอร์โทร LINE ที่อยู่ ข้อมูลรถ ทะเบียน รูปภาพ ประวัติงาน ราคา และใบเสนอราคา ใช้ได้เฉพาะเพื่อทำงานของ KMO</li>
+      <li>ห้ามคัดลอก ส่งต่อ เก็บไว้ส่วนตัว เปิดเผย หรือนำข้อมูลลูกค้าไปใช้กับงานส่วนตัวโดยไม่ได้รับอนุญาต</li>
+      <li>ข้อมูลภายใน เช่น แบบแร็ค ขนาด สเปก วิธีผลิต CAD ต้นทุน ราคา Supplier รายชื่อตัวแทน และเงื่อนไขการค้า ต้องเก็บเป็นความลับตามความเหมาะสม</li>
+      <li>พนักงานสามารถทำคอนเทนต์ส่วนตัวในพื้นที่ KMO ได้ หากไม่รบกวนงาน ไม่กระทบความปลอดภัย และไม่เปิดเผยข้อมูลลูกค้าหรือความลับของร้าน</li>
+      <li>ผู้ที่กำลังใช้เครื่องจักรหรืองานอันตราย ไม่ควรถ่ายคอนเทนต์ด้วยตัวเองในขณะทำงาน</li>
+      <li>การใช้ชื่อ โลโก้ หรือภาพลักษณ์ KMO ในลักษณะที่ดูเป็นช่องทางทางการ/สปอนเซอร์ ต้องได้รับอนุญาตจากเจ้าของร้าน</li>
+    </ul>
+  </section>
+
+  <section class="section" id="cctv">
+    <h2>11. กล้องวงจรปิด</h2>
+    <p>KMO มีกล้องวงจรปิดเพื่อความปลอดภัย การดูแลทรัพย์สิน และใช้เป็นหลักฐานเมื่อจำเป็น โดยการเข้าถึงและการใช้ภาพต้องเป็นไปตามวัตถุประสงค์ที่เหมาะสมและกฎหมายที่เกี่ยวข้อง</p>
+  </section>
+
+  <section class="section" id="offboarding">
+    <h2>12. การลาออกและการส่งมอบงาน</h2>
+    <ul>
+      <li>การแจ้งลาออกให้เป็นไปตามสัญญาจ้าง รอบการจ่ายค่าจ้าง และกฎหมายที่เกี่ยวข้อง</li>
+      <li>ก่อนวันสุดท้ายต้องส่งมอบงานค้าง รถลูกค้า สถานะงาน อะไหล่ เครื่องมือ กุญแจ อุปกรณ์ และข้อมูลที่จำเป็นต่อการทำงานต่อ</li>
+      <li>เมื่อสิ้นสุดการทำงาน ร้านจะยกเลิกสิทธิการเข้าถึงระบบตามความเหมาะสม</li>
+      <li>การส่งมอบงานและการจ่ายค่าจ้างเป็นคนละเรื่อง ร้านจะดำเนินการเรื่องค่าจ้างตามกฎหมาย</li>
+    </ul>
+  </section>
+
+  <section class="section" id="ack">
+    <h2>13. การรับทราบกฎ</h2>
+    <p>เมื่อระบบพนักงานเปิดใช้งาน พนักงานจะสามารถกดรับทราบกฎตามเวอร์ชันที่อ่านได้ โดยการรับทราบหมายถึงได้รับและอ่านกฎแล้ว ไม่ใช่การสละสิทธิตามกฎหมาย</p>
+    <div class="note">ปุ่มรับทราบจะเปิดใช้งานหลังจากระบบพนักงานและการยืนยันตัวตนผ่าน LINE พร้อมใช้งาน</div>
+  </section>
+
+  <footer class="footer">
+    <div><strong>KMO Rack Bar Custom</strong></div>
+    <div>เวอร์ชัน 1.0 · มีผลตั้งแต่ 6 ต.ค. 2569 · ปรับปรุงล่าสุด 6 ต.ค. 2569</div>
+    <div style="margin-top:6px">หากกฎของร้านข้อใดขัดกับสิทธิขั้นต่ำที่กฎหมายกำหนด ให้ใช้สิทธิตามกฎหมายเป็นหลัก</div>
+  </footer>
+</div>
+</body>
+</html>
