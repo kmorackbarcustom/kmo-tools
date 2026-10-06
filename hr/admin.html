@@ -28,6 +28,7 @@
       <div class="sub">Admin Console · Supabase RLS + Audit</div>
     </div>
     <div class="actions">
+      <a class="ghost" href="https://liff.line.me/2011901861-phCm6tbP" target="_blank" rel="noopener" style="text-decoration:none">Employee Portal</a>
       <a class="ghost" href="rules.html" style="text-decoration:none">กฎพนักงาน</a>
       <span id="adminName" class="sub"></span>
       <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
@@ -86,6 +87,12 @@
     </div>
 
     <div class="card">
+      <h2 class="section-title">ผูก LINE พนักงาน</h2>
+      <div class="sub" style="margin-bottom:12px">ให้พนักงานเปิด Employee Portal ครั้งแรก ระบบจะสร้างคำขอที่นี่ แล้ว Admin เลือกรายชื่อพนักงานเพื่อผูกบัญชี</div>
+      <div id="lineLinkRequests"><div class="sub">กำลังโหลด…</div></div>
+    </div>
+
+    <div class="card">
       <h2 class="section-title">พนักงาน</h2>
       <div style="overflow:auto">
         <table>
@@ -117,6 +124,7 @@ const db = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, {
 const $ = (id) => document.getElementById(id);
 let currentAdmin = null;
 let activeWorksite = null;
+let activeEmployees = [];
 
 function setMsg(el, text, kind='error') {
   el.textContent = text;
@@ -334,7 +342,8 @@ $('employeeForm').addEventListener('submit', async (e) => {
   if (error) { setMsg($('globalMsg'),'เพิ่มพนักงานไม่สำเร็จ: '+error.message); return; }
   setMsg($('globalMsg'),'เพิ่มพนักงานแล้ว','ok');
   e.target.reset();
-  await Promise.all([loadEmployees(),refreshStats(),loadAudit()]);
+  await loadEmployees();
+  await Promise.all([refreshStats(),loadLineLinks(),loadAudit()]);
 });
 
 async function deactivateEmployee(id) {
@@ -344,7 +353,8 @@ async function deactivateEmployee(id) {
     .eq('id',id);
   if (error) { setMsg($('globalMsg'),'อัปเดตไม่สำเร็จ: '+error.message); return; }
   setMsg($('globalMsg'),'ปิดสถานะพนักงานแล้ว','ok');
-  await Promise.all([loadEmployees(),refreshStats(),loadAudit()]);
+  await loadEmployees();
+  await Promise.all([refreshStats(),loadLineLinks(),loadAudit()]);
 }
 window.deactivateEmployee = deactivateEmployee;
 
@@ -353,8 +363,16 @@ async function loadEmployees() {
     .select('id,employee_code,full_name,phone,start_date,probation_end_date,employment_status,active')
     .order('active',{ascending:false})
     .order('start_date',{ascending:true});
-  if (error) { $('employeeRows').innerHTML='<tr><td colspan="7">โหลดไม่สำเร็จ</td></tr>'; return; }
-  if (!data.length) { $('employeeRows').innerHTML='<tr><td colspan="7">ยังไม่มีพนักงาน</td></tr>'; return; }
+  if (error) {
+    activeEmployees = [];
+    $('employeeRows').innerHTML='<tr><td colspan="7">โหลดไม่สำเร็จ</td></tr>';
+    return;
+  }
+  activeEmployees = (data || []).filter(x => x.active);
+  if (!data.length) {
+    $('employeeRows').innerHTML='<tr><td colspan="7">ยังไม่มีพนักงาน</td></tr>';
+    return;
+  }
   $('employeeRows').innerHTML = data.map(x => `
     <tr>
       <td>${escapeHtml(x.employee_code || '—')}</td>
@@ -366,6 +384,73 @@ async function loadEmployees() {
       <td>${x.active ? `<button class="danger" onclick="deactivateEmployee('${x.id}')">ปิดสถานะ</button>` : ''}</td>
     </tr>`).join('');
 }
+
+async function loadLineLinks() {
+  const box = $('lineLinkRequests');
+  const { data, error } = await db.from('hr_line_link_requests')
+    .select('id,display_name,status,requested_at,last_seen_at')
+    .eq('status','pending')
+    .order('requested_at',{ascending:true});
+
+  if (error) {
+    box.innerHTML = '<div class="error">โหลดคำขอผูก LINE ไม่สำเร็จ: '+escapeHtml(error.message)+'</div>';
+    return;
+  }
+
+  if (!data.length) {
+    box.innerHTML = '<div class="sub">ยังไม่มีคำขอผูก LINE</div>';
+    return;
+  }
+
+  if (!activeEmployees.length) {
+    box.innerHTML = '<div class="notice">มีคำขอ LINE แล้ว แต่ยังไม่มีพนักงาน Active — เพิ่มพนักงานก่อนจึงจะผูกได้</div>';
+    return;
+  }
+
+  box.innerHTML = data.map(req => {
+    const options = activeEmployees.map(emp =>
+      `<option value="${emp.id}">${escapeHtml(emp.employee_code || '—')} · ${escapeHtml(emp.full_name)}</option>`
+    ).join('');
+    return `
+      <div class="row" style="align-items:end;margin-top:10px">
+        <div>
+          <div><strong>${escapeHtml(req.display_name || 'LINE user')}</strong></div>
+          <div class="sub">ส่งคำขอ ${fmtTime(req.requested_at)}</div>
+        </div>
+        <div class="actions">
+          <select id="lineReq-${req.id}" style="min-width:220px">${options}</select>
+          <button class="primary" type="button" onclick="linkLineIdentity('${req.id}')">ผูกบัญชี</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function linkLineIdentity(requestId) {
+  const select = $('lineReq-' + requestId);
+  const employeeId = select?.value;
+  if (!employeeId) {
+    setMsg($('globalMsg'),'เลือกรายชื่อพนักงานก่อน');
+    return;
+  }
+  const emp = activeEmployees.find(x => x.id === employeeId);
+  if (!emp) {
+    setMsg($('globalMsg'),'ไม่พบพนักงานที่เลือก');
+    return;
+  }
+  if (!confirm('ยืนยันผูก LINE นี้กับ ' + emp.full_name + ' ?')) return;
+
+  const { error } = await db.rpc('hr_link_line_identity', {
+    p_request_id: requestId,
+    p_employee_id: employeeId
+  });
+  if (error) {
+    setMsg($('globalMsg'),'ผูก LINE ไม่สำเร็จ: '+error.message);
+    return;
+  }
+  setMsg($('globalMsg'),'ผูก LINE กับพนักงานแล้ว','ok');
+  await Promise.all([loadLineLinks(),loadAudit()]);
+}
+window.linkLineIdentity = linkLineIdentity;
 
 async function loadAudit() {
   const { data, error } = await db.from('hr_audit_events')
@@ -379,7 +464,9 @@ async function loadAudit() {
 }
 
 async function refreshAll() {
-  await Promise.all([refreshStats(),loadSchedule(),loadWorksite(),loadEmployees(),loadAudit()]);
+  await Promise.all([refreshStats(),loadSchedule(),loadWorksite(),loadAudit()]);
+  await loadEmployees();
+  await loadLineLinks();
 }
 
 db.auth.onAuthStateChange((_event, session) => {

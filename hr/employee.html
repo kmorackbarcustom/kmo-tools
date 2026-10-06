@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f0f0f">
+<title>KMO HR — Employee</title>
+<link rel="stylesheet" href="assets/hr.css">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+.emp-shell{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+.emp-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
+.emp-name{font-size:24px;font-weight:800;line-height:1.25;margin:6px 0 0}
+.clock-now{font-size:34px;font-weight:800;letter-spacing:-.03em}
+.clock-date{color:var(--muted);font-size:13px;margin-top:2px}
+.att-btn{width:100%;min-height:62px;font-size:18px;border-radius:14px;margin-top:14px}
+.att-btn[disabled]{opacity:.5;cursor:not-allowed}
+.pill{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px;background:var(--panel2)}
+.event-list{display:grid;gap:10px}.event{display:flex;justify-content:space-between;gap:12px;padding:12px;background:#111;border:1px solid var(--line);border-radius:10px}
+.event strong{display:block}.event-meta{text-align:right;font-size:12px;color:var(--muted)}
+.big{text-align:center;padding:22px 14px}.big h1{font-size:22px;margin:6px 0 8px}.big p{color:var(--muted);line-height:1.6}
+.loader{width:34px;height:34px;border-radius:50%;border:3px solid #333;border-top-color:var(--yellow);animation:spin .8s linear infinite;margin:14px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info{padding:12px;background:#111;border:1px solid var(--line);border-radius:10px}.info .v{font-size:16px;font-weight:700;margin-top:4px}
+.foot{font-size:11px;color:var(--muted);line-height:1.5;margin-top:14px}
+</style>
+</head>
+<body>
+<main class="emp-shell">
+<section id="loadingView" class="card big">
+  <div class="brand">KMO RACK BAR CUSTOM</div>
+  <div class="loader"></div>
+  <div class="sub">กำลังยืนยันตัวตนผ่าน LINE…</div>
+</section>
+
+<section id="unlinkedView" class="card big hidden">
+  <div class="brand">KMO HR</div>
+  <h1>รอผูกบัญชีพนักงาน</h1>
+  <p id="unlinkedText">ยืนยัน LINE แล้ว แต่ยังไม่ได้ผูกกับรายชื่อพนักงาน KMO</p>
+  <div class="notice">ระบบส่งคำขอไป HR Admin อัตโนมัติ หลัง Admin ผูกบัญชีแล้วให้เปิดหน้านี้ใหม่</div>
+  <a class="ghost" href="rules.html" style="display:inline-block;text-decoration:none;margin-top:14px">ดูกฎพนักงาน</a>
+</section>
+
+<section id="errorView" class="card big hidden">
+  <div class="brand">KMO HR</div>
+  <h1>เข้า Employee Portal ไม่สำเร็จ</h1>
+  <p id="fatalError">กรุณาลองใหม่</p>
+  <button id="reloadBtn" class="ghost">ลองใหม่</button>
+</section>
+
+<section id="portalView" class="hidden">
+<header class="emp-head">
+  <div><div class="brand">KMO HR</div><div id="employeeName" class="emp-name">—</div><div id="employeeCode" class="sub">—</div></div>
+  <a class="ghost" href="rules.html" style="text-decoration:none">กฎพนักงาน</a>
+</header>
+<div id="globalMsg" class="hidden" style="margin-bottom:12px"></div>
+<section class="card" style="margin-bottom:12px">
+  <div id="clockNow" class="clock-now">--:--</div>
+  <div id="clockDate" class="clock-date">—</div>
+  <div style="margin-top:12px"><span id="dayKind" class="pill">กำลังโหลด…</span></div>
+  <div class="info-grid" style="margin-top:14px">
+    <div class="info"><div class="label">เริ่มงาน</div><div id="workStart" class="v">—</div></div>
+    <div class="info"><div class="label">เลิกงาน</div><div id="workEnd" class="v">—</div></div>
+  </div>
+  <button id="clockBtn" class="primary att-btn" disabled>กำลังโหลด…</button>
+  <div class="foot">อ่านตำแหน่งเฉพาะตอนกดลงเวลาเพื่อตรวจพื้นที่ร้าน ไม่ติดตามตำแหน่งต่อเนื่อง และใช้เวลาจากเซิร์ฟเวอร์</div>
+</section>
+<section class="card"><h2 class="section-title">เวลาวันนี้</h2><div id="events" class="event-list"><div class="sub">ยังไม่มีรายการ</div></div></section>
+</section>
+</main>
+<script>
+const LIFF_ID='2011901861-phCm6tbP';
+const API_URL='https://ybyseaenceyswjnwdmdf.supabase.co/functions/v1/kmo-hr-line';
+const $=id=>document.getElementById(id);
+let state=null;
+
+const messages={
+  LINE_ID_TOKEN_REQUIRED:'ไม่พบข้อมูลยืนยันตัวตนจาก LINE',
+  LINE_ID_TOKEN_INVALID:'LINE Login หมดอายุหรือไม่ถูกต้อง กรุณาเปิดใหม่',
+  LINE_ID_TOKEN_EXPIRED:'LINE Login หมดอายุ กรุณาเปิดใหม่',
+  LINE_CHANNEL_MISMATCH:'LINE Login ไม่ใช่ช่องทาง KMO HR',
+  EMPLOYEE_INACTIVE:'บัญชีพนักงานนี้ไม่ได้อยู่ในสถานะ Active',
+  OUTSIDE_GEOFENCE:'ตอนนี้อยู่นอกพื้นที่ลงเวลาของร้าน KMO',
+  GPS_ACCURACY_TOO_LOW:'GPS ยังคลาดเคลื่อนมากเกินไป ลองออกที่โล่ง เปิด Location ความแม่นยำสูง แล้วกดใหม่',
+  ALREADY_RECORDED:'มีการลงเวลารายการนี้แล้ว',
+  CLOCK_IN_REQUIRED:'ต้องลงเวลาเข้างานก่อนจึงจะออกงานได้',
+  WORKSITE_NOT_CONFIGURED:'ยังไม่ได้ตั้งพิกัดร้านใน HR Admin',
+  ATTENDANCE_REJECTED:'ระบบไม่รับการลงเวลาครั้งนี้ กรุณาติดต่อ Admin',
+  STATUS_FAILED:'โหลดสถานะวันนี้ไม่สำเร็จ'
+};
+const labels={on_time:'ตรงเวลา',grace:'Grace',late:'สาย',early_leave:'ออกก่อนเวลา',clocked_out:'ออกงานแล้ว',after_hours_review:'หลังเวลา — รอตรวจ OT'};
+
+function show(id){['loadingView','unlinkedView','errorView','portalView'].forEach(x=>$(x).classList.toggle('hidden',x!==id))}
+function msg(text,kind='error'){const el=$('globalMsg');el.textContent=text;el.className=kind==='ok'?'ok':kind==='notice'?'notice':'error'}
+function clearMsg(){$('globalMsg').textContent='';$('globalMsg').className='hidden'}
+function fatal(text){$('fatalError').textContent=text;show('errorView')}
+function fmtTime(v){return new Date(v).toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit'})}
+function tick(){const n=new Date();$('clockNow').textContent=n.toLocaleTimeString('th-TH',{timeZone:'Asia/Bangkok',hour:'2-digit',minute:'2-digit',second:'2-digit'});$('clockDate').textContent=n.toLocaleDateString('th-TH',{timeZone:'Asia/Bangkok',weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+setInterval(tick,1000);
+$('reloadBtn').addEventListener('click',()=>location.reload());
+
+async function callApi(body){
+  const idToken=liff.getIDToken();
+  if(!idToken) throw new Error('LINE_ID_TOKEN_REQUIRED');
+  const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,idToken})});
+  const data=await res.json().catch(()=>({error:'BAD_RESPONSE'}));
+  if(!res.ok) throw new Error(data.error||'REQUEST_FAILED');
+  return data;
+}
+
+function render(data){
+  state=data;
+  $('employeeName').textContent=data.employee?.fullName||'พนักงาน KMO';
+  $('employeeCode').textContent=data.employee?.employeeCode||'ยังไม่ได้กำหนดรหัสพนักงาน';
+  $('workStart').textContent=String(data.schedule?.workStart||'—').slice(0,5);
+  $('workEnd').textContent=String(data.schedule?.workEnd||'—').slice(0,5);
+  $('dayKind').textContent=data.dayKind==='weekly_holiday'?'วันหยุดประจำสัปดาห์':'วันทำงาน';
+
+  const events=Array.isArray(data.events)?data.events:[];
+  $('events').innerHTML=events.length?events.map(e=>{
+    const isIn=e.event_type==='clock_in';
+    const distance=e.distance_m==null?'':('ห่างจุดร้าน ~'+Math.round(Number(e.distance_m))+' ม.');
+    return '<div class="event"><div><strong>'+(isIn?'เข้างาน':'ออกงาน')+'</strong><div class="sub">'+(labels[e.attendance_status]||e.attendance_status||'บันทึกแล้ว')+'</div></div><div class="event-meta"><strong style="color:var(--text)">'+fmtTime(e.occurred_at)+'</strong>'+distance+'</div></div>';
+  }).join(''):'<div class="sub">ยังไม่มีการลงเวลาวันนี้</div>';
+
+  const b=$('clockBtn');
+  if(!data.worksiteReady){b.disabled=true;b.textContent='ยังไม่ได้ตั้งพิกัดร้าน'}
+  else if(data.nextAction==='clock_in'){b.disabled=false;b.textContent='ลงเวลาเข้างาน'}
+  else if(data.nextAction==='clock_out'){b.disabled=false;b.textContent='ลงเวลาออกงาน'}
+  else{b.disabled=true;b.textContent='ลงเวลาวันนี้ครบแล้ว'}
+  show('portalView');
+}
+
+function position(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation)return reject(new Error('GEO_UNSUPPORTED'));
+    navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  });
+}
+$('clockBtn').addEventListener('click',async()=>{
+  clearMsg();
+  const type=state?.nextAction;
+  if(!type)return;
+  const b=$('clockBtn');
+  const old=b.textContent;
+  b.disabled=true;
+  b.textContent='กำลังตรวจตำแหน่ง…';
+  try{
+    const p=await position();
+    b.textContent='กำลังบันทึกเวลา…';
+    const data=await callApi({action:'clock',eventType:type,location:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}});
+    render(data);
+    msg(type==='clock_in'?'ลงเวลาเข้างานเรียบร้อย':'ลงเวลาออกงานเรียบร้อย','ok');
+  }catch(err){
+    const code=err?.message||'REQUEST_FAILED';
+    if(code==='GEO_UNSUPPORTED')msg('อุปกรณ์นี้ไม่รองรับ Location');
+    else if(code==='1')msg('ไม่ได้รับอนุญาตใช้ Location กรุณาเปิดสิทธิ Location ให้ LINE/Browser');
+    else if(code==='2'||code==='3')msg('อ่านตำแหน่งไม่สำเร็จ ลองเปิด GPS แล้วกดใหม่');
+    else msg(messages[code]||('ลงเวลาไม่สำเร็จ: '+code));
+    b.disabled=false;
+    b.textContent=old;
+  }
+});
+
+async function boot(){
+  tick();
+  show('loadingView');
+  try{
+    await liff.init({liffId:LIFF_ID});
+    if(!liff.isLoggedIn()){
+      liff.login({redirectUri:location.href.split('#')[0]});
+      return;
+    }
+    const data=await callApi({action:'status'});
+    if(!data.linked){
+      const n=data.displayName?('LINE: '+data.displayName+' — '):'';
+      $('unlinkedText').textContent=data.linkStatus==='rejected'
+        ? n+'คำขอผูกบัญชีถูกปฏิเสธ กรุณาติดต่อ Admin'
+        : n+'ยืนยัน LINE แล้ว แต่ยังไม่ได้ผูกกับรายชื่อพนักงาน KMO';
+      show('unlinkedView');
+      return;
+    }
+    render(data);
+  }catch(err){
+    console.error(err);
+    fatal(messages[err?.message]||'เกิดข้อผิดพลาดในการเปิด Employee Portal');
+  }
+}
+boot();
+</script>
+</body>
+</html>

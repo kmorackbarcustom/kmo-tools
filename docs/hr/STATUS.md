@@ -71,9 +71,12 @@ Architecture: `docs/hr/architecture/HR-V2-ARCHITECTURE.md`
 Current implementation blockers:
 1. second ADMIN identity;
 2. 5 employee records / LINE bindings;
-3. KMO worksite geofence coordinates;
-4. new HR LIFF app ID/endpoint;
-5. legal holds remain for work hours and Social Security.
+3. legal holds remain for work hours and Social Security.
+
+Resolved:
+- KMO worksite geofence configured;
+- dedicated HR LINE Login channel created (Channel ID 2011901861);
+- dedicated HR LIFF created (LIFF ID 2011901861-phCm6tbP).
 
 ## HR V2 admin console — 2026-10-06
 Added `hr/admin.html` with:
@@ -105,3 +108,27 @@ It shows:
 - print / save-PDF action;
 - future acknowledgement section.
 Internal legal/compliance holds remain in back-office documentation only.
+
+## LINE Employee Portal + attendance — 2026-10-06
+Implemented:
+- `hr/employee.html` LIFF portal using dedicated HR LIFF;
+- server-side LINE ID-token verification against Channel ID `2011901861`;
+- employee identity mapping kept separate from customer UUIDs;
+- unlinked LINE users create pending HR link requests only;
+- Admin UI can bind a pending LINE request to an active employee;
+- attendance clock-in / clock-out requires fresh device Location;
+- server-side timestamp, GPS accuracy and geofence enforcement;
+- duplicate / invalid clock sequence protection;
+- attendance status returns on-time / grace / late / early-leave / after-hours-review;
+- no continuous location tracking;
+- Supabase Edge Function `kmo-hr-line` deployed with custom LINE authentication.
+
+Database migrations:
+- `supabase/migrations/20261006201500_hr_line_employee_portal.sql`
+- `supabase/migrations/20261006202500_hr_line_link_invoker.sql`
+
+Remaining before real employee rollout:
+1. add employee records;
+2. each employee opens the LIFF once;
+3. Admin binds each pending LINE request to the correct employee;
+4. run an on-site clock-in / clock-out acceptance test.
