@@ -96,8 +96,8 @@
       <h2 class="section-title">พนักงาน</h2>
       <div style="overflow:auto">
         <table>
-          <thead><tr><th>รหัส</th><th>ชื่อ</th><th>โทร</th><th>เริ่มงาน</th><th>ทดลองงานถึง</th><th>สถานะ</th><th></th></tr></thead>
-          <tbody id="employeeRows"><tr><td colspan="7">กำลังโหลด…</td></tr></tbody>
+          <thead><tr><th>รหัส</th><th>ชื่อ</th><th>LINE</th><th>โทร</th><th>เริ่มงาน</th><th>ทดลองงานถึง</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+          <tbody id="employeeRows"><tr><td colspan="8">กำลังโหลด…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -125,6 +125,7 @@ const $ = (id) => document.getElementById(id);
 let currentAdmin = null;
 let activeWorksite = null;
 let activeEmployees = [];
+let allEmployees = [];
 
 function setMsg(el, text, kind='error') {
   el.textContent = text;
@@ -358,31 +359,82 @@ async function deactivateEmployee(id) {
 }
 window.deactivateEmployee = deactivateEmployee;
 
-async function loadEmployees() {
-  const { data, error } = await db.from('hr_employees')
-    .select('id,employee_code,full_name,phone,start_date,probation_end_date,employment_status,active')
-    .order('active',{ascending:false})
-    .order('start_date',{ascending:true});
+async function editEmployeeCode(id) {
+  const employee = allEmployees.find(x => x.id === id);
+  if (!employee) {
+    setMsg($('globalMsg'),'ไม่พบข้อมูลพนักงาน');
+    return;
+  }
+  const next = prompt('รหัสพนักงานของ ' + employee.full_name, employee.employee_code || '');
+  if (next === null) return;
+  const code = next.trim() || null;
+  const { error } = await db.from('hr_employees')
+    .update({employee_code: code})
+    .eq('id', id);
   if (error) {
+    setMsg($('globalMsg'),'แก้รหัสพนักงานไม่สำเร็จ: '+error.message);
+    return;
+  }
+  setMsg($('globalMsg'),'อัปเดตรหัสพนักงานแล้ว','ok');
+  await Promise.all([loadEmployees(), loadAudit()]);
+}
+window.editEmployeeCode = editEmployeeCode;
+
+async function loadEmployees() {
+  const [employeesRes, identitiesRes, linkedRequestsRes] = await Promise.all([
+    db.from('hr_employees')
+      .select('id,employee_code,full_name,phone,start_date,probation_end_date,employment_status,active')
+      .order('active',{ascending:false})
+      .order('start_date',{ascending:true}),
+    db.from('hr_employee_identities')
+      .select('employee_id,provider,active,linked_at')
+      .eq('provider','line')
+      .eq('active',true),
+    db.from('hr_line_link_requests')
+      .select('employee_id,display_name,status,decided_at')
+      .eq('status','linked')
+  ]);
+
+  if (employeesRes.error) {
     activeEmployees = [];
-    $('employeeRows').innerHTML='<tr><td colspan="7">โหลดไม่สำเร็จ</td></tr>';
+    $('employeeRows').innerHTML='<tr><td colspan="8">โหลดไม่สำเร็จ</td></tr>';
     return;
   }
-  activeEmployees = (data || []).filter(x => x.active);
+
+  const data = employeesRes.data || [];
+  allEmployees = data;
+  const identityMap = new Map((identitiesRes.data || []).map(x => [x.employee_id, x]));
+  const requestMap = new Map((linkedRequestsRes.data || []).filter(x => x.employee_id).map(x => [x.employee_id, x]));
+
+  activeEmployees = data.filter(x => x.active);
   if (!data.length) {
-    $('employeeRows').innerHTML='<tr><td colspan="7">ยังไม่มีพนักงาน</td></tr>';
+    $('employeeRows').innerHTML='<tr><td colspan="8">ยังไม่มีพนักงาน</td></tr>';
     return;
   }
-  $('employeeRows').innerHTML = data.map(x => `
-    <tr>
-      <td>${escapeHtml(x.employee_code || '—')}</td>
-      <td>${escapeHtml(x.full_name)}</td>
-      <td>${escapeHtml(x.phone || '—')}</td>
-      <td>${fmtDate(x.start_date)}</td>
-      <td>${fmtDate(x.probation_end_date)}</td>
-      <td>${x.active ? '<span class="success">Active</span>' : 'Inactive'}</td>
-      <td>${x.active ? `<button class="danger" onclick="deactivateEmployee('${x.id}')">ปิดสถานะ</button>` : ''}</td>
-    </tr>`).join('');
+
+  $('employeeRows').innerHTML = data.map(x => {
+    const identity = identityMap.get(x.id);
+    const lineReq = requestMap.get(x.id);
+    const lineCell = identity
+      ? `<span class="success">ผูกแล้ว</span>${lineReq?.display_name ? `<div class="sub">${escapeHtml(lineReq.display_name)}</div>` : ''}`
+      : '<span class="sub">ยังไม่ผูก</span>';
+    return `
+      <tr>
+        <td><strong>${escapeHtml(x.employee_code || '—')}</strong></td>
+        <td>${escapeHtml(x.full_name)}</td>
+        <td>${lineCell}</td>
+        <td>${escapeHtml(x.phone || '—')}</td>
+        <td>${fmtDate(x.start_date)}</td>
+        <td>${fmtDate(x.probation_end_date)}</td>
+        <td>${x.active ? '<span class="success">Active</span>' : 'Inactive'}</td>
+        <td>
+          <div class="actions">
+            <button class="ghost" type="button" onclick="editEmployeeCode('${x.id}')">แก้รหัส</button>
+            ${x.active ? `<button class="danger" type="button" onclick="deactivateEmployee('${x.id}')">ปิดสถานะ</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
 }
 
 async function loadLineLinks() {
@@ -448,6 +500,7 @@ async function linkLineIdentity(requestId) {
     return;
   }
   setMsg($('globalMsg'),'ผูก LINE กับพนักงานแล้ว','ok');
+  await loadEmployees();
   await Promise.all([loadLineLinks(),loadAudit()]);
 }
 window.linkLineIdentity = linkLineIdentity;
