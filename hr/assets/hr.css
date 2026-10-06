@@ -1,0 +1,25 @@
+:root{
+  --bg:#0f0f0f;--panel:#171717;--panel2:#202020;--line:#303030;
+  --text:#f5f5f2;--muted:#9a9a94;--yellow:#f5d000;--red:#d92d20;--green:#12b76a;
+}
+*{box-sizing:border-box}html{font-family:"IBM Plex Sans Thai","Sarabun",system-ui,sans-serif;background:var(--bg);color:var(--text)}
+body{margin:0;min-height:100vh}.hidden{display:none!important}
+.shell{max-width:1120px;margin:0 auto;padding:24px}.top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:24px}
+.brand{font-weight:700;letter-spacing:.02em}.sub{color:var(--muted);font-size:12px;margin-top:3px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.stack{display:grid;gap:14px}
+.kpi{font-size:28px;font-weight:700;margin-top:8px}.label{font-size:12px;color:var(--muted)}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:9px;padding:10px 14px;font-weight:600;cursor:pointer}
+.primary{background:var(--yellow);color:#111}.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.danger{background:#3a1715;color:#ffb4ac;border:1px solid #6e2823}.success{color:var(--green)}
+input,select,textarea{width:100%;border:1px solid var(--line);background:#111;color:var(--text);border-radius:9px;padding:11px 12px}
+label{display:grid;gap:6px;font-size:12px;color:var(--muted)}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form{display:grid;gap:12px}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500}.notice{padding:10px 12px;border-radius:9px;background:#28230a;border:1px solid #5c5210;color:#f8e36b;font-size:12px}
+.error{padding:10px 12px;border-radius:9px;background:#351515;border:1px solid #682525;color:#ffb4ac;font-size:12px}
+.ok{padding:10px 12px;border-radius:9px;background:#0d2b1e;border:1px solid #1f5b40;color:#75e0ad;font-size:12px}
+.login{max-width:420px;margin:10vh auto;padding:24px}.login h1{font-size:22px;margin:0 0 4px}.section-title{font-weight:700;margin:0 0 12px}
+code{background:#111;padding:2px 5px;border-radius:5px;color:#eee}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.shell{padding:16px}.top{align-items:flex-start}}

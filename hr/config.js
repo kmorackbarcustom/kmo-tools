@@ -1,0 +1,1 @@
+window.KMO_HR_CONFIG = { supabaseUrl: 'https://ybyseaenceyswjnwdmdf.supabase.co', supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlieXNlYWVuY2V5c3dqbndkbWRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3OTk3MTgsImV4cCI6MjA4OTM3NTcxOH0.NpaB7XrM0MzTknMvFLKkN57WG7_GkCb9zxZQUROz9Ug' };

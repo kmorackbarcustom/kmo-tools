@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMO HR — Admin</title>
+<link rel="stylesheet" href="assets/hr.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<section id="loginView" class="login card">
+  <div class="brand">KMO RACK BAR CUSTOM</div>
+  <h1>HR Admin</h1>
+  <div class="sub">เข้าสู่ระบบด้วยบัญชี Supabase Auth ที่ได้รับสิทธิ ADMIN</div>
+  <form id="loginForm" class="form" style="margin-top:18px">
+    <label>อีเมล<input id="email" type="email" autocomplete="username" required></label>
+    <label>รหัสผ่าน<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">เข้าสู่ระบบ</button>
+    <div id="loginMsg" class="hidden"></div>
+  </form>
+</section>
+
+<main id="appView" class="shell hidden">
+  <header class="top">
+    <div>
+      <div class="brand">KMO HR V2</div>
+      <div class="sub">Admin Console · Supabase RLS + Audit</div>
+    </div>
+    <div class="actions">
+      <span id="adminName" class="sub"></span>
+      <button id="logoutBtn" class="ghost">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <div id="globalMsg" class="hidden" style="margin-bottom:14px"></div>
+
+  <section class="grid" style="margin-bottom:14px">
+    <div class="card"><div class="label">พนักงาน Active</div><div id="kpiEmployees" class="kpi">—</div></div>
+    <div class="card"><div class="label">คำขอลารออนุมัติ</div><div id="kpiLeave" class="kpi">—</div></div>
+    <div class="card"><div class="label">Clock events วันนี้</div><div id="kpiAttendance" class="kpi">—</div></div>
+  </section>
+
+  <section class="stack">
+    <div class="card">
+      <h2 class="section-title">สถานะกฎเวลางาน</h2>
+      <div id="scheduleBox">กำลังโหลด…</div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">พิกัดร้านสำหรับลงเวลา</h2>
+      <div id="worksiteState" class="sub" style="margin-bottom:12px">กำลังโหลด…</div>
+      <div class="row">
+        <label>รัศมีอนุญาต (เมตร)<input id="radiusM" type="number" min="20" max="2000" value="150"></label>
+        <label>GPS accuracy สูงสุด (เมตร)<input id="maxAccuracyM" type="number" min="10" max="1000" value="100"></label>
+      </div>
+      <div class="actions" style="margin-top:12px">
+        <button id="captureWorksiteBtn" class="primary">ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน</button>
+      </div>
+      <div class="sub" style="margin-top:8px">ต้องกดจากโทรศัพท์/คอมที่อยู่ที่ร้าน และอนุญาต Location ให้ browser</div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">เพิ่มพนักงาน</h2>
+      <form id="employeeForm" class="form">
+        <div class="row">
+          <label>ชื่อ-นามสกุล<input id="empName" required></label>
+          <label>เบอร์โทร<input id="empPhone" inputmode="tel"></label>
+        </div>
+        <div class="row">
+          <label>รหัสพนักงาน<input id="empCode" placeholder="เช่น KMO-001"></label>
+          <label>วันเริ่มงาน<input id="empStart" type="date" required></label>
+        </div>
+        <div class="actions"><button class="primary" type="submit">เพิ่มพนักงาน</button></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">พนักงาน</h2>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>รหัส</th><th>ชื่อ</th><th>โทร</th><th>เริ่มงาน</th><th>ทดลองงานถึง</th><th>สถานะ</th><th></th></tr></thead>
+          <tbody id="employeeRows"><tr><td colspan="7">กำลังโหลด…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Audit ล่าสุด</h2>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>เวลา</th><th>Actor</th><th>ตาราง</th><th>Action</th><th>Record</th></tr></thead>
+          <tbody id="auditRows"><tr><td colspan="5">กำลังโหลด…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const cfg = window.KMO_HR_CONFIG;
+if (!cfg?.supabaseUrl || !cfg?.supabaseKey) throw new Error('Missing KMO HR Supabase config');
+const db = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+
+const $ = (id) => document.getElementById(id);
+let currentAdmin = null;
+let activeWorksite = null;
+
+function setMsg(el, text, kind='error') {
+  el.textContent = text;
+  el.className = kind === 'ok' ? 'ok' : kind === 'notice' ? 'notice' : 'error';
+}
+function clearMsg(el) { el.textContent=''; el.className='hidden'; }
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtDate(v) {
+  if (!v) return '—';
+  return new Date(v).toLocaleDateString('th-TH');
+}
+function fmtTime(v) {
+  if (!v) return '—';
+  return new Date(v).toLocaleString('th-TH', { dateStyle:'short', timeStyle:'short' });
+}
+function probationEnd(startDate) {
+  const d = new Date(startDate + 'T00:00:00');
+  d.setDate(d.getDate() + 118);
+  return d.toISOString().slice(0,10);
+}
+
+async function requireAdmin() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) return false;
+  const { data, error } = await db.from('hr_admins')
+    .select('user_id,display_name,active')
+    .eq('user_id', session.user.id)
+    .eq('active', true)
+    .maybeSingle();
+  if (error || !data) {
+    await db.auth.signOut();
+    return false;
+  }
+  currentAdmin = data;
+  $('adminName').textContent = data.display_name;
+  return true;
+}
+
+async function boot() {
+  clearMsg($('loginMsg'));
+  if (await requireAdmin()) {
+    $('loginView').classList.add('hidden');
+    $('appView').classList.remove('hidden');
+    await refreshAll();
+  } else {
+    $('appView').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+  }
+}
+
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMsg($('loginMsg'));
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) {
+    setMsg($('loginMsg'), 'เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
+    return;
+  }
+  if (!(await requireAdmin())) {
+    setMsg($('loginMsg'), 'บัญชีนี้ไม่มีสิทธิ ADMIN ของ KMO HR');
+    return;
+  }
+  $('loginView').classList.add('hidden');
+  $('appView').classList.remove('hidden');
+  await refreshAll();
+});
+
+$('logoutBtn').addEventListener('click', async () => {
+  await db.auth.signOut();
+  currentAdmin = null;
+  await boot();
+});
+
+async function refreshStats() {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1).toISOString();
+  const [emp, leave, att] = await Promise.all([
+    db.from('hr_employees').select('id',{count:'exact',head:true}).eq('active',true),
+    db.from('hr_leave_requests').select('id',{count:'exact',head:true}).eq('status','pending'),
+    db.from('hr_attendance_events').select('id',{count:'exact',head:true}).gte('occurred_at',start).lt('occurred_at',end)
+  ]);
+  $('kpiEmployees').textContent = emp.count ?? '—';
+  $('kpiLeave').textContent = leave.count ?? '—';
+  $('kpiAttendance').textContent = att.count ?? '—';
+}
+
+async function loadSchedule() {
+  const { data, error } = await db.from('hr_schedule_config').select('*').single();
+  if (error) { $('scheduleBox').innerHTML = '<div class="error">โหลด schedule ไม่สำเร็จ</div>'; return; }
+  $('scheduleBox').innerHTML = `
+    <div class="${data.legal_hold ? 'notice' : 'ok'}">
+      ${data.work_start.slice(0,5)}–${data.work_end.slice(0,5)}
+      · พักรวม ${data.break_minutes} นาที
+      · Grace ${data.grace_minutes} นาที
+      · หยุดประจำสัปดาห์: อังคาร
+      <br><strong>${data.legal_hold ? 'LEGAL HOLD' : 'LEGAL CLEARED'}</strong>
+      ${data.legal_hold_note ? '<br>'+escapeHtml(data.legal_hold_note) : ''}
+    </div>`;
+}
+
+async function loadWorksite() {
+  const { data, error } = await db.from('hr_worksites').select('*').eq('active',true).maybeSingle();
+  if (error) { $('worksiteState').textContent = 'โหลดพิกัดร้านไม่สำเร็จ'; return; }
+  activeWorksite = data || null;
+  if (!data) {
+    $('worksiteState').innerHTML = '<span class="notice">ยังไม่ตั้งพิกัดร้าน — ระบบลงเวลาจะถูกบล็อกไว้</span>';
+    return;
+  }
+  $('radiusM').value = data.radius_m;
+  $('maxAccuracyM').value = data.max_accuracy_m;
+  $('worksiteState').innerHTML = `ตั้งแล้ว: <code>${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}</code> · รัศมี ${data.radius_m} ม.`;
+}
+
+$('captureWorksiteBtn').addEventListener('click', () => {
+  const btn = $('captureWorksiteBtn');
+  if (!navigator.geolocation) { setMsg($('globalMsg'),'Browser นี้ไม่รองรับ Location'); return; }
+  btn.disabled = true; btn.textContent = 'กำลังอ่าน GPS…';
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const payload = {
+        name: 'KMO Rack Bar Custom',
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        radius_m: Number($('radiusM').value || 150),
+        max_accuracy_m: Number($('maxAccuracyM').value || 100),
+        active: true,
+        created_by: (await db.auth.getUser()).data.user.id
+      };
+      let res;
+      if (activeWorksite) {
+        delete payload.created_by;
+        res = await db.from('hr_worksites').update(payload).eq('id',activeWorksite.id).select().single();
+      } else {
+        res = await db.from('hr_worksites').insert(payload).select().single();
+      }
+      if (res.error) throw res.error;
+      setMsg($('globalMsg'), `บันทึกพิกัดร้านแล้ว (GPS accuracy ~${Math.round(pos.coords.accuracy)} ม.)`, 'ok');
+      await loadWorksite();
+    } catch (err) {
+      setMsg($('globalMsg'),'บันทึกพิกัดไม่สำเร็จ: '+err.message);
+    } finally {
+      btn.disabled=false; btn.textContent='ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน';
+    }
+  }, (err) => {
+    setMsg($('globalMsg'),'อ่าน Location ไม่สำเร็จ: '+err.message);
+    btn.disabled=false; btn.textContent='ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน';
+  }, {enableHighAccuracy:true,timeout:15000,maximumAge:0});
+});
+
+$('employeeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMsg($('globalMsg'));
+  const start = $('empStart').value;
+  const payload = {
+    employee_code: $('empCode').value.trim() || null,
+    full_name: $('empName').value.trim(),
+    phone: $('empPhone').value.trim() || null,
+    start_date: start,
+    probation_end_date: probationEnd(start),
+    employment_status: 'active',
+    active: true
+  };
+  const { error } = await db.from('hr_employees').insert(payload);
+  if (error) { setMsg($('globalMsg'),'เพิ่มพนักงานไม่สำเร็จ: '+error.message); return; }
+  setMsg($('globalMsg'),'เพิ่มพนักงานแล้ว','ok');
+  e.target.reset();
+  await Promise.all([loadEmployees(),refreshStats(),loadAudit()]);
+});
+
+async function deactivateEmployee(id) {
+  if (!confirm('ยืนยันปิดสถานะพนักงานคนนี้?')) return;
+  const { error } = await db.from('hr_employees')
+    .update({active:false,employment_status:'inactive'})
+    .eq('id',id);
+  if (error) { setMsg($('globalMsg'),'อัปเดตไม่สำเร็จ: '+error.message); return; }
+  setMsg($('globalMsg'),'ปิดสถานะพนักงานแล้ว','ok');
+  await Promise.all([loadEmployees(),refreshStats(),loadAudit()]);
+}
+window.deactivateEmployee = deactivateEmployee;
+
+async function loadEmployees() {
+  const { data, error } = await db.from('hr_employees')
+    .select('id,employee_code,full_name,phone,start_date,probation_end_date,employment_status,active')
+    .order('active',{ascending:false})
+    .order('start_date',{ascending:true});
+  if (error) { $('employeeRows').innerHTML='<tr><td colspan="7">โหลดไม่สำเร็จ</td></tr>'; return; }
+  if (!data.length) { $('employeeRows').innerHTML='<tr><td colspan="7">ยังไม่มีพนักงาน</td></tr>'; return; }
+  $('employeeRows').innerHTML = data.map(x => `
+    <tr>
+      <td>${escapeHtml(x.employee_code || '—')}</td>
+      <td>${escapeHtml(x.full_name)}</td>
+      <td>${escapeHtml(x.phone || '—')}</td>
+      <td>${fmtDate(x.start_date)}</td>
+      <td>${fmtDate(x.probation_end_date)}</td>
+      <td>${x.active ? '<span class="success">Active</span>' : 'Inactive'}</td>
+      <td>${x.active ? `<button class="danger" onclick="deactivateEmployee('${x.id}')">ปิดสถานะ</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+async function loadAudit() {
+  const { data, error } = await db.from('hr_audit_events')
+    .select('occurred_at,actor_kind,table_name,action,record_id')
+    .order('occurred_at',{ascending:false}).limit(20);
+  if (error) { $('auditRows').innerHTML='<tr><td colspan="5">โหลดไม่สำเร็จ</td></tr>'; return; }
+  if (!data.length) { $('auditRows').innerHTML='<tr><td colspan="5">ยังไม่มี audit</td></tr>'; return; }
+  $('auditRows').innerHTML = data.map(x => `
+    <tr><td>${fmtTime(x.occurred_at)}</td><td>${escapeHtml(x.actor_kind)}</td>
+    <td>${escapeHtml(x.table_name)}</td><td>${escapeHtml(x.action)}</td><td>${escapeHtml(x.record_id||'—')}</td></tr>`).join('');
+}
+
+async function refreshAll() {
+  await Promise.all([refreshStats(),loadSchedule(),loadWorksite(),loadEmployees(),loadAudit()]);
+}
+
+db.auth.onAuthStateChange((_event, session) => {
+  if (!session && !$('appView').classList.contains('hidden')) boot();
+});
+boot();
+</script>
+</body>
+</html>

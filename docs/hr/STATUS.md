@@ -74,3 +74,21 @@ Current implementation blockers:
 3. KMO worksite geofence coordinates;
 4. new HR LIFF app ID/endpoint;
 5. legal holds remain for work hours and Social Security.
+
+## HR V2 admin console — 2026-10-06
+Added `hr/admin.html` with:
+- Supabase Auth email/password login;
+- ADMIN membership verification through RLS;
+- active employee / pending leave / today attendance counters;
+- employee creation + probation-end calculation;
+- employee deactivation;
+- KMO worksite geofence capture from browser Location;
+- current schedule/legal-hold display;
+- recent audit log view.
+
+Local checks:
+- inline JavaScript syntax: PASS (`node --check`);
+- local HTTP index: 200;
+- local HTTP `/hr/admin.html`: 200.
+
+Employee-facing portal is not enabled yet. It will use a new HR LIFF app and server-side LINE ID-token verification; existing booking/order LIFF apps will not be repurposed.
