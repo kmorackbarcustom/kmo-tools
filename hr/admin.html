@@ -51,14 +51,23 @@
     <div class="card">
       <h2 class="section-title">พิกัดร้านสำหรับลงเวลา</h2>
       <div id="worksiteState" class="sub" style="margin-bottom:12px">กำลังโหลด…</div>
+      <label style="margin-bottom:12px">พิกัดจาก Google Maps
+        <input id="mapInput" placeholder="วาง 13.xxxxxx, 100.xxxxxx">
+      </label>
       <div class="row">
+        <label>Latitude<input id="worksiteLat" type="number" step="any" min="-90" max="90" placeholder="13.xxxxxx"></label>
+        <label>Longitude<input id="worksiteLng" type="number" step="any" min="-180" max="180" placeholder="100.xxxxxx"></label>
+      </div>
+      <div class="row" style="margin-top:12px">
         <label>รัศมีอนุญาต (เมตร)<input id="radiusM" type="number" min="20" max="2000" value="150"></label>
         <label>GPS accuracy สูงสุด (เมตร)<input id="maxAccuracyM" type="number" min="10" max="1000" value="100"></label>
       </div>
       <div class="actions" style="margin-top:12px">
-        <button id="captureWorksiteBtn" class="primary">ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน</button>
+        <button id="parseMapBtn" class="ghost" type="button">อ่านพิกัดที่วาง</button>
+        <button id="saveWorksiteBtn" class="primary" type="button">บันทึกพิกัดที่กรอก</button>
+        <button id="captureWorksiteBtn" class="ghost" type="button">ใช้ตำแหน่งเครื่องนี้</button>
       </div>
-      <div class="sub" style="margin-top:8px">ต้องกดจากโทรศัพท์/คอมที่อยู่ที่ร้าน และอนุญาต Location ให้ browser</div>
+      <div class="sub" style="margin-top:8px">ถ้าไม่ได้อยู่ที่ร้าน ให้คัดลอก Latitude, Longitude จาก Google Maps มาวาง ห้ามกดใช้ตำแหน่งเครื่องนี้</div>
     </div>
 
     <div class="card">
@@ -218,47 +227,93 @@ async function loadWorksite() {
   if (error) { $('worksiteState').textContent = 'โหลดพิกัดร้านไม่สำเร็จ'; return; }
   activeWorksite = data || null;
   if (!data) {
+    $('worksiteLat').value = '';
+    $('worksiteLng').value = '';
     $('worksiteState').innerHTML = '<span class="notice">ยังไม่ตั้งพิกัดร้าน — ระบบลงเวลาจะถูกบล็อกไว้</span>';
     return;
   }
+  $('worksiteLat').value = data.latitude;
+  $('worksiteLng').value = data.longitude;
   $('radiusM').value = data.radius_m;
   $('maxAccuracyM').value = data.max_accuracy_m;
   $('worksiteState').innerHTML = `ตั้งแล้ว: <code>${data.latitude.toFixed(6)}, ${data.longitude.toFixed(6)}</code> · รัศมี ${data.radius_m} ม.`;
 }
 
+function parseCoordinates(raw) {
+  const value = decodeURIComponent(String(raw || '').trim());
+  const match = value.match(/(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)/);
+  if (!match) return null;
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+}
+
+async function saveWorksiteCoords(lat, lng, sourceLabel) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    setMsg($('globalMsg'),'พิกัดไม่ถูกต้อง');
+    return false;
+  }
+  const user = (await db.auth.getUser()).data.user;
+  const payload = {
+    name: 'KMO Rack Bar Custom',
+    latitude: lat,
+    longitude: lng,
+    radius_m: Number($('radiusM').value || 150),
+    max_accuracy_m: Number($('maxAccuracyM').value || 100),
+    active: true,
+    created_by: user.id
+  };
+  let res;
+  if (activeWorksite) {
+    delete payload.created_by;
+    res = await db.from('hr_worksites').update(payload).eq('id',activeWorksite.id).select().single();
+  } else {
+    res = await db.from('hr_worksites').insert(payload).select().single();
+  }
+  if (res.error) {
+    setMsg($('globalMsg'),'บันทึกพิกัดไม่สำเร็จ: '+res.error.message);
+    return false;
+  }
+  setMsg($('globalMsg'),'บันทึกพิกัดร้านแล้วจาก '+sourceLabel,'ok');
+  await Promise.all([loadWorksite(), loadAudit()]);
+  return true;
+}
+
+$('parseMapBtn').addEventListener('click', () => {
+  const coords = parseCoordinates($('mapInput').value);
+  if (!coords) {
+    setMsg($('globalMsg'),'อ่านพิกัดไม่ได้ — ใช้รูปแบบ Latitude, Longitude เช่น 13.xxxxxx, 100.xxxxxx');
+    return;
+  }
+  $('worksiteLat').value = coords.lat;
+  $('worksiteLng').value = coords.lng;
+  setMsg($('globalMsg'),'อ่านพิกัดได้แล้ว ตรวจเลขก่อนกดบันทึก','ok');
+});
+
+$('saveWorksiteBtn').addEventListener('click', async () => {
+  const lat = Number($('worksiteLat').value);
+  const lng = Number($('worksiteLng').value);
+  await saveWorksiteCoords(lat, lng, 'Google Maps/ค่าที่กรอก');
+});
+
 $('captureWorksiteBtn').addEventListener('click', () => {
+  if (!confirm('ยืนยันว่าจะใช้ตำแหน่งของอุปกรณ์เครื่องนี้เป็นพิกัดร้าน KMO? ถ้าไม่ได้อยู่ที่ร้านให้กดยกเลิก')) return;
   const btn = $('captureWorksiteBtn');
   if (!navigator.geolocation) { setMsg($('globalMsg'),'Browser นี้ไม่รองรับ Location'); return; }
   btn.disabled = true; btn.textContent = 'กำลังอ่าน GPS…';
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
-      const payload = {
-        name: 'KMO Rack Bar Custom',
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        radius_m: Number($('radiusM').value || 150),
-        max_accuracy_m: Number($('maxAccuracyM').value || 100),
-        active: true,
-        created_by: (await db.auth.getUser()).data.user.id
-      };
-      let res;
-      if (activeWorksite) {
-        delete payload.created_by;
-        res = await db.from('hr_worksites').update(payload).eq('id',activeWorksite.id).select().single();
-      } else {
-        res = await db.from('hr_worksites').insert(payload).select().single();
-      }
-      if (res.error) throw res.error;
-      setMsg($('globalMsg'), `บันทึกพิกัดร้านแล้ว (GPS accuracy ~${Math.round(pos.coords.accuracy)} ม.)`, 'ok');
-      await loadWorksite();
-    } catch (err) {
-      setMsg($('globalMsg'),'บันทึกพิกัดไม่สำเร็จ: '+err.message);
+      $('worksiteLat').value = pos.coords.latitude;
+      $('worksiteLng').value = pos.coords.longitude;
+      const ok = await saveWorksiteCoords(pos.coords.latitude, pos.coords.longitude, 'GPS ของอุปกรณ์');
+      if (ok) setMsg($('globalMsg'), `บันทึกพิกัดร้านแล้ว (GPS accuracy ~${Math.round(pos.coords.accuracy)} ม.)`, 'ok');
     } finally {
-      btn.disabled=false; btn.textContent='ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน';
+      btn.disabled=false; btn.textContent='ใช้ตำแหน่งเครื่องนี้';
     }
   }, (err) => {
     setMsg($('globalMsg'),'อ่าน Location ไม่สำเร็จ: '+err.message);
-    btn.disabled=false; btn.textContent='ใช้ตำแหน่งปัจจุบันเป็นพิกัดร้าน';
+    btn.disabled=false; btn.textContent='ใช้ตำแหน่งเครื่องนี้';
   }, {enableHighAccuracy:true,timeout:15000,maximumAge:0});
 });
 
