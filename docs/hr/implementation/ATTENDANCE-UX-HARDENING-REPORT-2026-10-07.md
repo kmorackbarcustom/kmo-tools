@@ -15,6 +15,7 @@ Date: 2026-10-07 (Asia/Bangkok)
   - `tests/attendance-state.test.ts`
   - `tests/attendance-errors.test.cjs`
   - `tests/attendance-contract.test.cjs`
+  - `docs/hr/implementation/ATTENDANCE-UX-HARDENING-REPORT-2026-10-07.md`
 - Database migration: none. Existing service-only RPC and advisory transaction lock remain unchanged.
 - Admin source: unchanged.
 
