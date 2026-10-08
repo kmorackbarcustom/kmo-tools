@@ -60,6 +60,8 @@ The migration changes privileges/policy only and no rows. If the migration fails
 ## Review and merge boundary
 
 - Security test evidence: **PASS in isolated PostgreSQL WASM; Supabase local-stack test remains unavailable here**.
-- Independent review: pending.
-- Merge readiness: **HOLD pending independent review and Owner's separate merge approval**.
+- Independent source review of PR #1 head `4cdced3e9bcd12c3296b08228457df95b07645ad`: **PASS**. Reviewer confirmed the ACL revokes, service-role grant, removal of the direct insert policy, preserved SELECT RLS, and unchanged Edge/RPC sequence path. Reviewer also inspected the test source; the 22/22 PGlite assertions were not independently reproduced.
+- PR #1 merge readiness: **PASS WITH NOTES**. The independent review and available Node, Deno, type-check, and isolated PostgreSQL security checks pass. GitHub reports the PR open and mergeable, but has no configured status checks and no submitted GitHub review decision. Supabase local-stack execution remains unavailable; use a separate approved Supabase test/staging database before the Production migration.
+- Combined PR #1 + PR #2 source review: **PASS WITH NOTES**. PR #2 navigation resolves under the configured `/kmo-tools/` Pages base; its earlier absolute-path issue is corrected. See `ATTENDANCE-REVIEW-REPORT-2026-10-08.md` for the independent findings and evidence boundaries.
+- Production migration, merge, and deployment remain **not authorized by this report** and require the Owner's separate approval.
 - No merge, deployment, Production migration, or Production attendance write was performed.
