@@ -14,7 +14,7 @@ test('Admin links to the read-only attendance history page', () => {
 
 test('page verifies active ADMIN membership before showing data', () => {
   assert.match(page, /db\.from\('hr_admins'\)[\s\S]*?\.eq\('user_id', data\.session\.user\.id\)[\s\S]*?\.eq\('active', true\)/);
-  assert.match(page, /if \(!adminResult\.data\)[\s\S]*?db\.auth\.signOut\(\)/);
+  assert.match(page, /if \(!adminResult\.data\) \{\s*return \{ authorized: false, hasSession: true \};\s*\}/);
   assert.match(page, /db\.from\('hr_employees'\)/);
   assert.match(page, /db\.from\('hr_attendance_events'\)/);
   assert.match(migration, /create policy hr_employees_select[\s\S]*?or kmo_hr_private\.is_admin\(\(select auth\.uid\(\)\)\)/);

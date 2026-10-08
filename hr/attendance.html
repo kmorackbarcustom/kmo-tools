@@ -126,7 +126,6 @@ async function requireAdmin() {
     .maybeSingle();
   if (adminResult.error) throw adminResult.error;
   if (!adminResult.data) {
-    await db.auth.signOut();
     return { authorized: false, hasSession: true };
   }
   return { authorized: true, hasSession: true, admin: adminResult.data };
