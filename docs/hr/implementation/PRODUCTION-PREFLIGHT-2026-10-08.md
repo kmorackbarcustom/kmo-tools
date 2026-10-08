@@ -37,16 +37,16 @@ The Production versions differ from source filename timestamps. The mapping abov
 After a complete backup and isolated restore pass, a reviewer pass, schema/history reconciliation, and explicit Owner release approval:
 
 1. Reconfirm the four existing Production history names and current schema state read-only.
-2. Apply only `supabase/migrations/20261008053722_hr_attendance_service_role_only.sql` through the migration-aware single-migration operation, recording the migration as `hr_attendance_service_role_only` in the normal migration history.
+2. Apply only `supabase/migrations/20261008053722_hr_attendance_service_role_only.sql` through a single-migration mechanism only after confirming exactly which version/name it records in `supabase_migrations.schema_migrations`.
 3. Do not run `supabase db push`, any of the four older migrations, or a ledger repair.
-4. Verify grants, RLS enablement, relevant policies, and RPC execution privileges using read-only catalog checks. Do not write test Attendance rows.
+4. Verify effective grants (including PUBLIC and inherited roles), RLS enablement, SELECT policy presence, insert policy absence, and service-role RPC execution privileges using read-only catalog checks. Do not write test Attendance rows.
 5. If verification fails, stop release and retain the existing access restrictions; do not restore direct INSERT permission as a workaround.
 
-The exact Production schema precondition is still pending a credentialed, read-only schema comparison. Therefore this procedure is a proposal, not an authorization or a declaration that the migration is ready to run.
+The exact Production schema precondition is still pending a credentialed, read-only schema comparison. The migration-aware connector operation available for this project accepts a migration name but no version/timestamp argument; with the existing Production/source timestamp mismatch, its ledger result must be proven before choosing it. No validated Production apply mechanism is selected yet. Therefore this procedure is a proposal, not an authorization or a declaration that the migration is ready to run.
 
 ## Independent review
 
-The source review of PR #1 and PR #2 previously passed with notes. The requested independent review of this backup/restore evidence and migration procedure is pending. Since backup and restore artifacts do not exist, this gate cannot receive a PASS.
+The source review of PR #1 and PR #2 previously passed with notes. The independent reviewer returned **HOLD** for this preflight: no database dump or restore artifact exists; name-only mapping does not prove schema equivalence; and the single-migration mechanism's ledger version must be confirmed before use. The reviewer checked the migration SQL but could not open this report in their workspace, so the report prose did not receive line-by-line independent review. Since backup and restore artifacts do not exist, this gate cannot receive a PASS.
 
 ## Owner action required
 
