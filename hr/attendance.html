@@ -241,7 +241,7 @@ function renderRows(rows, date) {
 
 async function loadAttendance(alreadyAuthorized = false) {
   const sequence = ++requestSequence;
-  if (!alreadyAuthorized) {
+  if (alreadyAuthorized !== true) {
     try {
       const access = await requireAdmin();
       if (sequence !== requestSequence) return;
@@ -360,9 +360,9 @@ $('todayBtn').addEventListener('click', () => {
   $('dateInput').value = history.getBangkokDate();
   loadAttendance();
 });
-$('dateInput').addEventListener('change', loadAttendance);
-$('employeeInput').addEventListener('change', loadAttendance);
-$('refreshBtn').addEventListener('click', loadAttendance);
+$('dateInput').addEventListener('change', () => loadAttendance());
+$('employeeInput').addEventListener('change', () => loadAttendance());
+$('refreshBtn').addEventListener('click', () => loadAttendance());
 
 db.auth.onAuthStateChange((_event, session) => {
   if (!session) boot();

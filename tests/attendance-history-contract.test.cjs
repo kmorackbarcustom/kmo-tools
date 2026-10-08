@@ -21,6 +21,22 @@ test('page verifies active ADMIN membership before showing data', () => {
   assert.match(migration, /create policy hr_attendance_select[\s\S]*?or kmo_hr_private\.is_admin\(\(select auth\.uid\(\)\)\)/);
 });
 
+test('loadAttendance skips authorization only for an explicit true and listeners discard events', () => {
+  const authorizationGuard = page.match(/async function loadAttendance\(alreadyAuthorized = false\)[\s\S]*?if \(([^)]+)\)/);
+  assert.ok(authorizationGuard, 'loadAttendance must retain an explicit authorization guard');
+  const requiresAdminCheck = vm.runInNewContext(`(alreadyAuthorized) => ${authorizationGuard[1]}`);
+
+  assert.equal(requiresAdminCheck(true), false);
+  assert.equal(requiresAdminCheck(false), true);
+  assert.equal(requiresAdminCheck(undefined), true);
+  assert.equal(requiresAdminCheck({ type: 'change' }), true);
+  assert.match(page, /await loadAttendance\(true\)/, 'boot must be the explicit authorized caller');
+  assert.match(page, /\$\('dateInput'\)\.addEventListener\('change', \(\) => loadAttendance\(\)\)/);
+  assert.match(page, /\$\('employeeInput'\)\.addEventListener\('change', \(\) => loadAttendance\(\)\)/);
+  assert.match(page, /\$\('refreshBtn'\)\.addEventListener\('click', \(\) => loadAttendance\(\)\)/);
+  assert.doesNotMatch(page, /addEventListener\((?:'change'|'click'),\s*loadAttendance\)/);
+});
+
 test('queries only approved fields and bounds every list query with pagination', () => {
   assert.match(page, /\.select\('id,employee_code,full_name,start_date,active'\)/);
   assert.match(page, /\.select\('id,employee_id,event_type,occurred_at'\)/);
