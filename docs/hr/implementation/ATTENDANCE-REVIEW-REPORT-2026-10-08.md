@@ -7,7 +7,7 @@
 - Repository: `kmorackbarcustom/kmo-tools`
 - `main`: `738d302f7eb96fe9a2a1d71bee0c8ab05b1eee5c`
 - PR #1 Hardening → `main`: `codex/hr-attendance-ux-hardening-20261007`; security remediation source reviewed at `4cdced3e9bcd12c3296b08228457df95b07645ad`. A later documentation-only commit records this review.
-- PR #2 History → Hardening: source reviewed at `c32b7b46248b23ccc5ccd098f2a7baedeca05bb1`; after PR #1's documentation-only update, PR #2 was rebased onto the new base. Current head after the report update is `550ef8cb83787f65d1bbbd0c04b543878211a07e`; the rebase and report commits retain the reviewed source changes.
+- PR #2 History → Hardening: source reviewed at `c32b7b46248b23ccc5ccd098f2a7baedeca05bb1`; after PR #1's documentation-only update, PR #2 was rebased onto the new base. Rebased source commit is `c927409d2da8c0cafcbb954a99fa53c1a7d91362`; later branch commits update review documentation only.
 - [PR #1](https://github.com/kmorackbarcustom/kmo-tools/pull/1)
 - [PR #2](https://github.com/kmorackbarcustom/kmo-tools/pull/2)
 
