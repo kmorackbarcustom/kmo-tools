@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KMO HR — บันทึกเวลาทำงาน</title>
+<link rel="stylesheet" href="assets/hr.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/attendance-history.js"></script>
+</head>
+<body>
+<section id="loginView" class="login card">
+  <div class="brand">KMO RACK BAR CUSTOM</div>
+  <h1>บันทึกเวลาทำงาน</h1>
+  <div class="sub">เข้าสู่ระบบด้วยบัญชี Supabase Auth ที่ได้รับสิทธิ ADMIN</div>
+  <form id="loginForm" class="form" style="margin-top:18px">
+    <label>อีเมล<input id="email" type="email" autocomplete="username" required></label>
+    <label>รหัสผ่าน<input id="password" type="password" autocomplete="current-password" required></label>
+    <button id="loginBtn" class="primary" type="submit">เข้าสู่ระบบ</button>
+    <div id="loginMsg" class="hidden" role="alert" aria-live="polite"></div>
+  </form>
+</section>
+
+<main id="appView" class="shell hidden">
+  <header class="top">
+    <div>
+      <div class="brand">KMO HR V2</div>
+      <h1 class="page-title">บันทึกเวลาทำงาน</h1>
+      <div id="adminName" class="sub"></div>
+    </div>
+    <div class="actions">
+      <a class="ghost attendance-link" href="admin.html">กลับหน้า Admin</a>
+      <button id="logoutBtn" class="ghost" type="button">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <section class="card attendance-card" aria-labelledby="historyTitle">
+    <h2 id="historyTitle" class="section-title">ประวัติลงเวลา</h2>
+    <p class="sub attendance-note">แสดงเวลาที่บันทึกไว้ตามเวลาไทย (Asia/Bangkok) ข้อมูลนี้เป็นรายการลงเวลา ไม่ใช่ข้อสรุปเรื่องการมาทำงาน</p>
+    <div class="attendance-controls">
+      <label>วันที่
+        <input id="dateInput" type="date" required>
+      </label>
+      <label>พนักงาน
+        <select id="employeeInput">
+          <option value="">พนักงานทั้งหมด</option>
+        </select>
+      </label>
+      <div class="attendance-actions" aria-label="ตัวเลือกวันที่และรีเฟรช">
+        <button id="previousDayBtn" class="ghost" type="button" aria-label="วันก่อนหน้า">← วันก่อน</button>
+        <button id="todayBtn" class="ghost" type="button">วันนี้</button>
+        <button id="nextDayBtn" class="ghost" type="button" aria-label="วันถัดไป">วันถัดไป →</button>
+        <button id="refreshBtn" class="primary" type="button">รีเฟรช</button>
+      </div>
+    </div>
+    <div id="historyMessage" class="hidden" role="status" aria-live="polite"></div>
+    <div class="attendance-table-wrap" role="region" aria-label="รายการลงเวลาของพนักงาน" tabindex="0">
+      <table class="attendance-table">
+        <thead>
+          <tr>
+            <th scope="col">รหัสพนักงาน</th>
+            <th scope="col">ชื่อพนักงาน</th>
+            <th scope="col">เวลาเข้า</th>
+            <th scope="col">เวลาออก</th>
+            <th scope="col">สถานะข้อมูล</th>
+          </tr>
+        </thead>
+        <tbody id="attendanceRows">
+          <tr><td colspan="5">กำลังโหลด…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const cfg = window.KMO_HR_CONFIG;
+if (!cfg?.supabaseUrl || !cfg?.supabaseKey) throw new Error('Missing KMO HR Supabase config');
+const db = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseKey, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+const history = window.KmoAttendanceHistory;
+const $ = (id) => document.getElementById(id);
+const PAGE_SIZE = 500;
+let employees = [];
+let bootSequence = 0;
+let requestSequence = 0;
+
+function showMessage(element, text, kind = 'notice') {
+  element.textContent = text;
+  element.className = kind;
+}
+
+function clearMessage(element) {
+  element.textContent = '';
+  element.className = 'hidden';
+}
+
+function setControlsDisabled(disabled) {
+  ['dateInput', 'employeeInput', 'previousDayBtn', 'todayBtn', 'nextDayBtn', 'refreshBtn']
+    .forEach((id) => { $(id).disabled = disabled; });
+}
+
+function setHistoryLoading() {
+  clearMessage($('historyMessage'));
+  showMessage($('historyMessage'), 'กำลังโหลดรายการ…', 'notice');
+  $('attendanceRows').replaceChildren();
+  const row = document.createElement('tr');
+  const cell = document.createElement('td');
+  cell.colSpan = 5;
+  cell.textContent = 'กำลังโหลด…';
+  row.append(cell);
+  $('attendanceRows').append(row);
+}
+
+async function requireAdmin() {
+  const { data, error } = await db.auth.getSession();
+  if (error) throw error;
+  if (!data.session) return { authorized: false, hasSession: false };
+
+  const adminResult = await db.from('hr_admins')
+    .select('user_id,display_name,active')
+    .eq('user_id', data.session.user.id)
+    .eq('active', true)
+    .maybeSingle();
+  if (adminResult.error) throw adminResult.error;
+  if (!adminResult.data) {
+    await db.auth.signOut();
+    return { authorized: false, hasSession: true };
+  }
+  return { authorized: true, hasSession: true, admin: adminResult.data };
+}
+
+async function fetchAllEmployees() {
+  return history.fetchPagedRows((offset, end) => db.from('hr_employees')
+      .select('id,employee_code,full_name,start_date,active')
+      .order('employee_code', { ascending: true, nullsFirst: false })
+      .order('full_name', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, end), PAGE_SIZE);
+}
+
+async function fetchDayEvents(date, employeeId) {
+  const { startIso, endIso } = history.getBangkokDayRange(date);
+  return history.fetchPagedRows((offset, end) => {
+    let query = db.from('hr_attendance_events')
+      .select('id,employee_id,event_type,occurred_at')
+      .gte('occurred_at', startIso)
+      .lt('occurred_at', endIso)
+      .order('occurred_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(offset, end);
+    if (employeeId) query = query.eq('employee_id', employeeId);
+    return query;
+  }, PAGE_SIZE);
+}
+
+function populateEmployeeFilter(selectedId = '') {
+  const select = $('employeeInput');
+  const allOption = document.createElement('option');
+  allOption.value = '';
+  allOption.textContent = 'พนักงานทั้งหมด';
+  select.replaceChildren(allOption);
+  for (const employee of employees) {
+    const option = document.createElement('option');
+    option.value = employee.id;
+    option.textContent = `${employee.employee_code || '—'} · ${employee.full_name}`;
+    select.append(option);
+  }
+  select.value = employees.some((employee) => employee.id === selectedId) ? selectedId : '';
+}
+
+function appendEventDetails(parent, events) {
+  const details = document.createElement('details');
+  const summary = document.createElement('summary');
+  summary.textContent = `ดูเวลาที่บันทึกไว้ (${events.length} รายการ)`;
+  details.append(summary);
+  const list = document.createElement('ul');
+  list.className = 'attendance-event-list';
+  for (const event of events) {
+    const item = document.createElement('li');
+    const eventType = event.event_type === 'clock_in'
+      ? 'เข้างาน'
+      : event.event_type === 'clock_out' ? 'ออกงาน' : 'ประเภทไม่รู้จัก';
+    item.textContent = `${eventType} · ${history.formatBangkokTimestamp(event.occurred_at)} (Asia/Bangkok) · ${event.occurred_at}`;
+    list.append(item);
+  }
+  details.append(list);
+  parent.append(details);
+}
+
+function renderRows(rows, date) {
+  const body = $('attendanceRows');
+  body.replaceChildren();
+  if (!rows.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 5;
+    cell.textContent = date === history.getBangkokDate()
+      ? 'ยังไม่มีรายการลงเวลาสำหรับวันที่เลือก'
+      : 'ไม่พบรายการลงเวลาในวันที่เลือก';
+    row.append(cell);
+    body.append(row);
+    return;
+  }
+
+  const statusClasses = {
+    complete: 'attendance-status attendance-status-ok',
+    clock_in_only: 'attendance-status attendance-status-notice',
+    no_event_today: 'attendance-status attendance-status-notice',
+    no_events: 'attendance-status attendance-status-muted',
+    review_required: 'attendance-status attendance-status-error',
+  };
+  for (const item of rows) {
+    const row = document.createElement('tr');
+    const cells = [
+      item.employee.employee_code || '—',
+      item.employee.full_name || 'ไม่พบข้อมูลพนักงาน',
+      item.clockIn ? history.formatBangkokTime(item.clockIn.occurred_at) : '—',
+      item.clockOut ? history.formatBangkokTime(item.clockOut.occurred_at) : '—',
+    ];
+    const labels = ['รหัสพนักงาน', 'ชื่อพนักงาน', 'เวลาเข้า', 'เวลาออก'];
+    cells.forEach((value, index) => {
+      const cell = document.createElement('td');
+      cell.dataset.label = labels[index];
+      cell.textContent = value;
+      row.append(cell);
+    });
+
+    const statusCell = document.createElement('td');
+    statusCell.dataset.label = 'สถานะข้อมูล';
+    const status = document.createElement('span');
+    status.className = statusClasses[item.statusKey] || statusClasses.review_required;
+    status.textContent = item.statusText;
+    statusCell.append(status);
+    if (item.statusKey === 'review_required' && item.events.length) appendEventDetails(statusCell, item.events);
+    row.append(statusCell);
+    body.append(row);
+  }
+}
+
+async function loadAttendance(alreadyAuthorized = false) {
+  const sequence = ++requestSequence;
+  if (!alreadyAuthorized) {
+    try {
+      const access = await requireAdmin();
+      if (sequence !== requestSequence) return;
+      if (!access.authorized) {
+        $('appView').classList.add('hidden');
+        $('loginView').classList.remove('hidden');
+        $('loginMsg').className = access.hasSession ? 'error' : 'hidden';
+        $('loginMsg').textContent = access.hasSession ? 'บัญชีนี้ไม่มีสิทธิ ADMIN ของ KMO HR' : '';
+        return;
+      }
+      $('adminName').textContent = access.admin.display_name || 'ผู้ดูแลระบบ';
+    } catch (error) {
+      if (sequence !== requestSequence) return;
+      console.error('[kmo-hr-attendance-history] admin check failed', error);
+      $('appView').classList.add('hidden');
+      $('loginView').classList.remove('hidden');
+      showMessage($('loginMsg'), 'ตรวจสอบสิทธิผู้ดูแลระบบไม่สำเร็จ ลองเข้าสู่ระบบอีกครั้ง', 'error');
+      return;
+    }
+  }
+  const date = $('dateInput').value;
+  const employeeId = $('employeeInput').value;
+  if (!date) {
+    showMessage($('historyMessage'), 'เลือกวันที่ก่อนโหลดรายการ', 'error');
+    return;
+  }
+
+  setControlsDisabled(true);
+  setHistoryLoading();
+  try {
+    const nextEmployees = await fetchAllEmployees();
+    if (sequence !== requestSequence) return;
+    employees = nextEmployees;
+    populateEmployeeFilter(employeeId);
+    const effectiveEmployeeId = $('employeeInput').value;
+    const events = await fetchDayEvents(date, effectiveEmployeeId);
+    if (sequence !== requestSequence) return;
+    const rows = history.buildRows(employees, events, {
+      date,
+      todayDate: history.getBangkokDate(),
+      employeeId: effectiveEmployeeId,
+    });
+    renderRows(rows, date);
+    showMessage($('historyMessage'), `แสดงข้อมูลวันที่ ${date} · เวลาไทย`, 'attendance-result-note');
+  } catch (error) {
+    if (sequence !== requestSequence) return;
+    console.error('[kmo-hr-attendance-history] load failed', error);
+    $('attendanceRows').replaceChildren();
+    showMessage($('historyMessage'), 'โหลดข้อมูลไม่สำเร็จ ตรวจสอบสิทธิหรือการเชื่อมต่อ แล้วกดรีเฟรชอีกครั้ง', 'error');
+  } finally {
+    if (sequence === requestSequence) setControlsDisabled(false);
+  }
+}
+
+async function boot() {
+  const sequence = ++bootSequence;
+  $('appView').classList.add('hidden');
+  try {
+    const result = await requireAdmin();
+    if (sequence !== bootSequence) return;
+    $('loginView').classList.toggle('hidden', result.authorized);
+    if (!result.authorized) {
+      $('loginMsg').className = result.hasSession ? 'error' : 'hidden';
+      $('loginMsg').textContent = result.hasSession ? 'บัญชีนี้ไม่มีสิทธิ ADMIN ของ KMO HR' : '';
+      return;
+    }
+    $('adminName').textContent = result.admin.display_name || 'ผู้ดูแลระบบ';
+    $('appView').classList.remove('hidden');
+    $('dateInput').value = history.getBangkokDate();
+    await loadAttendance(true);
+  } catch (error) {
+    if (sequence !== bootSequence) return;
+    console.error('[kmo-hr-attendance-history] admin check failed', error);
+    $('loginView').classList.remove('hidden');
+    showMessage($('loginMsg'), 'ตรวจสอบสิทธิผู้ดูแลระบบไม่สำเร็จ ลองเข้าสู่ระบบอีกครั้ง', 'error');
+  }
+}
+
+$('loginForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  clearMessage($('loginMsg'));
+  $('loginBtn').disabled = true;
+  const { error } = await db.auth.signInWithPassword({
+    email: $('email').value.trim(),
+    password: $('password').value,
+  });
+  $('loginBtn').disabled = false;
+  if (error) {
+    showMessage($('loginMsg'), 'เข้าสู่ระบบไม่สำเร็จ ตรวจสอบอีเมลและรหัสผ่านแล้วลองอีกครั้ง', 'error');
+    return;
+  }
+  await boot();
+});
+
+$('logoutBtn').addEventListener('click', async () => {
+  const { error } = await db.auth.signOut();
+  if (error) {
+    console.error('[kmo-hr-attendance-history] sign out failed', error);
+    showMessage($('historyMessage'), 'ออกจากระบบไม่สำเร็จ ลองอีกครั้ง', 'error');
+    return;
+  }
+  await boot();
+});
+
+function changeDate(amount) {
+  try {
+    $('dateInput').value = history.shiftDate($('dateInput').value, amount);
+    loadAttendance();
+  } catch (_error) {
+    showMessage($('historyMessage'), 'เลือกวันที่ที่ถูกต้องก่อนเปลี่ยนวัน', 'error');
+  }
+}
+$('previousDayBtn').addEventListener('click', () => changeDate(-1));
+$('nextDayBtn').addEventListener('click', () => changeDate(1));
+$('todayBtn').addEventListener('click', () => {
+  $('dateInput').value = history.getBangkokDate();
+  loadAttendance();
+});
+$('dateInput').addEventListener('change', loadAttendance);
+$('employeeInput').addEventListener('change', loadAttendance);
+$('refreshBtn').addEventListener('click', loadAttendance);
+
+db.auth.onAuthStateChange((_event, session) => {
+  if (!session) boot();
+});
+boot();
+</script>
+</body>
+</html>
