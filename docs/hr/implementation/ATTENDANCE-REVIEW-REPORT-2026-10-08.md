@@ -11,7 +11,7 @@
 - [PR #1](https://github.com/kmorackbarcustom/kmo-tools/pull/1)
 - [PR #2](https://github.com/kmorackbarcustom/kmo-tools/pull/2)
 
-The Independent Reviewer inspected the current remote source and test refs read-only. This report supersedes the earlier review snapshot below, whose PR heads and PR #1 verdict are stale. The review is an independent source review, not a submitted GitHub review approval.
+The Independent Reviewer inspected the current remote source and test refs read-only. This report supersedes the earlier review snapshot, whose PR heads and PR #1 verdict are stale. The review is an independent source review, not a submitted GitHub review approval.
 
 ## ผล Review
 
@@ -40,7 +40,7 @@ Owner reports Admin login and real Attendance read, historical date selection, a
 - Both branches: `deno test tests/attendance-state.test.ts` — **7 passed, 0 failed** each.
 - Both branches: `deno check supabase/functions/kmo-hr-line/index.ts` — **passed**.
 - Migration/security: all project migrations including the new forward migration were applied in an ephemeral PostgreSQL 18.3 PGlite WASM database; the repository SQL security test ran under a minimal TAP-compatible harness — **22/22 assertions passed**. Synthetic data only; transaction rolled back. The Independent Reviewer inspected the SQL test source but did not reproduce this PGlite run.
-- Browser smoke: local preview at desktop 1440×900 and mobile 390×844; home and target pages returned HTTP 200, new card navigated to Attendance History, direct unauthenticated page access showed the login view and kept the app view hidden, existing HR Admin navigation remained, no horizontal overflow or page JS errors.
+- Codex browser smoke: local preview at desktop 1440×900 and mobile 390×844; home and target pages returned HTTP 200, new card navigated to Attendance History, direct unauthenticated page access showed the login view and kept the app view hidden, existing HR Admin navigation remained, no horizontal overflow or page JS errors.
 - Inline scripts in Admin, Employee, and Attendance pages parsed successfully; `git diff --check` passed for both PR ranges.
 - Supabase local-stack `supabase test db` was not run: this environment has no Docker or `psql`, and this repository has no `supabase/config.toml`. The isolated PostgreSQL run is evidence for the migrations and security assertions, but is not a Supabase local-stack execution. Repeat the migration tests on an approved Supabase test/staging database before Production migration.
 - GitHub currently reports both PRs OPEN and mergeable; `reviewDecision` and `statusCheckRollup` are empty. No CI checks are configured/reported in the PR snapshot.
