@@ -9,8 +9,8 @@ Date: 2026-10-09 (Asia/Bangkok)
 - Isolated restore: **PASS for the tested database and Storage scope**, with the version and project-configuration limits below.
 - Independent review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The fresh reviewer rechecked the backup/restore totals, Production catalog/ledger, one-migration procedure, and the reported PR-status discrepancy.
 - Production security migration: **PASS**. The user explicitly authorized Production Write; only the forward Security Migration was applied and verified. No Attendance test write was performed.
-- Production release: **HOLD / in progress** until PR merges, GitHub Pages deployment, and live smoke checks finish. No PR merge or website deployment has been performed yet.
-- Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. Both the original Local Test environment and this separate restore environment remain intact.
+- Production release: **PASS**. PR #1 and PR #2 are merged to `main` in the approved order, the GitHub Pages deployment succeeded for release commit `822718120e2c2cec71514c350f464e1ed1640073`, and the live route smoke checks passed. The authenticated Admin and Attendance data views were not opened in this unauthenticated browser run.
+- Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. After release evidence was collected, the task-specific Local Test and restore stacks and their isolated Colima profile were removed. Colima `default` remained stopped and untouched.
 
 ## Backup evidence
 
@@ -67,7 +67,7 @@ The read-only catalog result confirmed the target migration's required starting 
 - No Production Attendance row was inserted, updated, or deleted for testing.
 - The temporary Session Pooler credential file was removed after the CLI operation; no connection secret is recorded in this repository.
 
-Security migration verification is **PASS**. Release remains in progress until PRs merge in order, Pages updates, and live smoke checks complete.
+Security migration verification is **PASS**. PR merges, Pages deployment, and live route smoke checks are complete; see the final release and cleanup record below.
 
 ## Security Migration procedure — tested in Local and executed in Production
 
@@ -83,7 +83,17 @@ The user explicitly authorized the Production Write in this conversation. Post-a
 
 Independent backup review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. A separate post-migration read-only review verified the Production ledger, grants, RLS, policies, and RPC privileges. That review requested this report and PR-description update before merge; the current report records the post-migration state.
 
-Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions matched the Production catalog before apply, and the post-migration verification passed. Production release remains **HOLD** until the corrected report and PR descriptions receive an independent documentation check, PR #1 then PR #2 merge to `main`, Pages updates, and the live smoke checks pass. No Production Attendance test row will be written.
+Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions matched the Production catalog before apply, and the post-migration verification passed. At the time of this review, Release was **HOLD** pending corrected PR descriptions, ordered merges, Pages deployment, and live checks. That historical gate was subsequently completed as recorded below. No Production Attendance test row was written.
+
+## Final release and cleanup (2026-10-09, Asia/Bangkok)
+
+- Independent Reviewer rechecked the corrected PR descriptions, exact heads, bases, and Production evidence and returned **PASS** for merge readiness. PR #1 was `81d2fa5c3de819cb18321d0ddfeb7623c2af490d`, based on `main`; it merged at 12:21:16 ICT as `bc5df0c8449e8617dd050604d8f1fdfeec93d577`. PR #2 was `ccb3c4b9ae3459f7ffc5c62a6ddc9c34f43c21ce`; after PR #1 merged, it was retargeted to `main`, rechecked as clean/mergeable, and merged at 12:21:27 ICT as `822718120e2c2cec71514c350f464e1ed1640073`.
+- GitHub Pages workflow [37888191366](https://github.com/kmorackbarcustom/kmo-tools/actions/runs/37888191366) completed successfully for release commit `822718120e2c2cec71514c350f464e1ed1640073`.
+- Live smoke checks returned HTTP 200 for the home page, HR Admin, Attendance History, and Employee Portal. The home page contains the Attendance History link. Admin and Attendance History show the Admin sign-in gate to an unauthenticated browser; Employee Portal redirects to LINE Login. No attendance data was opened or written during the smoke check.
+- Playwright found no application script errors on the inspected pages. The browser reported a missing root `favicon.ico` (HTTP 404) on the static pages, and LINE Login showed an autocomplete advisory. These did not block route rendering or the sign-in gates. Authenticated Admin/history data rendering remains unverified in this browser session.
+- Cleanup removed only `/tmp/kmo-tools-preflight-20261009`, `/tmp/kmo-hr-prod-single-migration-20261009`, and Colima profile `kmo-hr-release-test`, which contained the task-specific `kmo-tools` Local Test and `kmo-hr-restore-20261009` restore stacks. The temporary credential file had already been securely deleted after migration. No other Docker profiles or project workspaces were removed.
+- Before cleanup, the selected Colima VM disk occupied 8.2 GB in Docker image data and 1.4 GB in the Colima profile directory; Docker reported 24 containers, 13 images, and 6 volumes. Host free space was 475 GiB. After deleting the test profile, host free space was 484 GiB (9 GiB returned by `df -h`); only the stopped Colima `default` profile remains. Docker context returned to `default`; no test services remain running.
+- Managed backup and isolated restore evidence remain in the report above and in the private FileVault-protected backup location. The public repository contains no backup payloads, credentials, or employee data.
 
 ## References
 
