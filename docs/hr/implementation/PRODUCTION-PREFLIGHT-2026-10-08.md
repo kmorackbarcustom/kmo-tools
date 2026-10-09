@@ -45,6 +45,18 @@ The four existing KMO HR Production history entries map to current source files 
 
 The Production timestamps differ from the current source filenames; this is a name mapping, not proof that each historical migration was byte-identical to the current file. The Production schema was dumped and restored, and the restored catalog checks above matched Production. A complete source-to-live schema reconciliation against every migration remains **unverified**.
 
+## Current read-only release preflight (2026-10-09 12:04 ICT)
+
+- Supabase Management API reports project `ybyseaenceyswjnwdmdf` as `ACTIVE_HEALTHY`, PostgreSQL 17.6.1, in `ap-northeast-2`.
+- Production migration history still contains 14 entries, including the four HR versions listed above. The target version `20261008053722` is not applied.
+- Catalog checks confirm `public.hr_attendance_events` exists with RLS enabled. Effective INSERT is denied to `anon`, allowed to `authenticated`, and allowed to `service_role`. The `hr_attendance_insert` policy is still present for authenticated users. This is the exact security gap the target migration is intended to close; it remains open until that migration is applied.
+- GitHub reports PR #1 and PR #2 open and mergeable. PR #2 targets PR #1's branch; GitHub has no submitted review decisions or configured checks reported for these PRs.
+- Live GitHub Pages Home still lacks the Attendance History card. `https://kmorackbarcustom.github.io/kmo-tools/hr/attendance.html` currently returns HTTP 404. Therefore the new page is not live yet.
+- On the current PR #2 head, `node --test tests/*.test.cjs` passes. Deno is not installed in this checkout environment; the previously recorded Deno test and type-check passes were on unchanged application source (subsequent commits are documentation-only). The existing 22/22 database security test was not repeated, per Owner instruction.
+- No production SQL, migration-ledger change, merge, deploy, or Attendance write was performed during these checks.
+
+The read-only catalog result confirms the target migration's required starting state (existing Attendance table, RLS enabled, authenticated INSERT grant, and direct INSERT policy). It does not claim byte-identical historical migration source. For this forward-only security change, release must stop if those preconditions differ at execution time.
+
 ## Security Migration procedure — tested in Local, not executed in Production
 
 Target file: `supabase/migrations/20261008053722_hr_attendance_service_role_only.sql`.
@@ -59,7 +71,7 @@ After a reviewer pass and explicit Owner Production Write approval, verify effec
 
 Independent review: **PASS** at report commit `10c5460f8d145046a3cb7c4ac3f199b64f51a0fb`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. The reviewer also confirmed that capture-window and component-version limitations are disclosed. The reviewer did not approve a Production write.
 
-The source-to-live schema reconciliation remains incomplete: the Production schema/catalog was restored and compared to the Local restore, but each historical migration's full SQL has not been proven byte-identical to the current source. Therefore Production release remains **HOLD**.
+Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions have now been checked directly against the Production catalog and match the intended forward-only change. Production release remains **HOLD** until the controlled migration procedure has a ready credential and the Owner explicitly authorizes the Production write.
 
 **Owner approval request:** not sent yet. It will be prepared after the source-to-live schema reconciliation is resolved. This preflight does not authorize a Production write.
 
