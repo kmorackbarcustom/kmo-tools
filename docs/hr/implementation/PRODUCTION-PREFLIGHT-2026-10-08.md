@@ -7,7 +7,7 @@ Date: 2026-10-09 (Asia/Bangkok)
 - Managed backups: **HOLD / unavailable** — the Supabase organization is on the Free plan; scheduled managed backups are unavailable on this plan.
 - Manual logical backup: **PASS** — read-only export completed through the Supabase Session Pooler. Backup artifacts and SHA-256 inventory are stored in a private FileVault-protected location outside Git.
 - Isolated restore: **PASS for the tested database and Storage scope**, with the version and project-configuration limits below.
-- Independent review: **HOLD / pending final review** — the first review attempt could not locate this checkout; a second review is requested with the exact workspace path.
+- Independent review: **PASS** at report commit `10c5460f8d145046a3cb7c4ac3f199b64f51a0fb`. The reviewer confirmed the evidence totals, checksum inventory, migration-name mapping, procedure probe, and stated limits.
 - Production release: **HOLD**. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment was performed. Owner Production Write approval has not been given.
 - Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. Both the original Local Test environment and this separate restore environment remain intact.
 
@@ -57,9 +57,11 @@ After a reviewer pass and explicit Owner Production Write approval, verify effec
 
 ## Independent review and Owner decision
 
-The independent reviewer must inspect the backup/restore evidence, source migration mapping, and tested single-migration procedure. The first review attempt returned HOLD because its workspace could not locate the report or backup manifest. A second review is requested with the exact checkout and manifest paths. This report will be updated with the result before requesting Production Write approval.
+Independent review: **PASS** at report commit `10c5460f8d145046a3cb7c4ac3f199b64f51a0fb`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. The reviewer also confirmed that capture-window and component-version limitations are disclosed. The reviewer did not approve a Production write.
 
-**Owner approval request:** not sent yet. It will be prepared after the independent review passes and the source-to-live schema reconciliation is resolved. This preflight does not authorize a Production write.
+The source-to-live schema reconciliation remains incomplete: the Production schema/catalog was restored and compared to the Local restore, but each historical migration's full SQL has not been proven byte-identical to the current source. Therefore Production release remains **HOLD**.
+
+**Owner approval request:** not sent yet. It will be prepared after the source-to-live schema reconciliation is resolved. This preflight does not authorize a Production write.
 
 ## References
 
