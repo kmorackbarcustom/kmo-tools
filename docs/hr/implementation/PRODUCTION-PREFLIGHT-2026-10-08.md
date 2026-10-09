@@ -59,7 +59,7 @@ After a reviewer pass and explicit Owner Production Write approval, verify effec
 
 The independent reviewer must inspect the backup/restore evidence, source migration mapping, and tested single-migration procedure. The first review attempt returned HOLD because its workspace could not locate the report or backup manifest. A second review is requested with the exact checkout and manifest paths. This report will be updated with the result before requesting Production Write approval.
 
-**Owner approval requested:** approve the later Production release only after the independent review passes and a version-safe single-migration/ledger procedure is established. This preflight does not authorize a Production write.
+**Owner approval request:** not sent yet. It will be prepared after the independent review passes and the source-to-live schema reconciliation is resolved. This preflight does not authorize a Production write.
 
 ## References
 
