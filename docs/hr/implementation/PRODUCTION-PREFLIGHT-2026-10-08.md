@@ -45,12 +45,12 @@ The four existing KMO HR Production history entries map to current source files 
 
 The Production timestamps differ from the current source filenames; this is a name mapping, not proof that each historical migration was byte-identical to the current file. The Production schema was dumped and restored, and the restored catalog checks above matched Production. A complete source-to-live schema reconciliation against every migration remains **unverified**.
 
-## Current read-only release preflight (2026-10-09 12:04 ICT)
+## Current read-only release preflight (2026-10-09 12:06 ICT)
 
 - Supabase Management API reports project `ybyseaenceyswjnwdmdf` as `ACTIVE_HEALTHY`, PostgreSQL 17.6.1, in `ap-northeast-2`.
 - Production migration history still contains 14 entries, including the four HR versions listed above. The target version `20261008053722` is not applied.
 - Catalog checks confirm `public.hr_attendance_events` exists with RLS enabled. Effective INSERT is denied to `anon`, allowed to `authenticated`, and allowed to `service_role`. The `hr_attendance_insert` policy is still present for authenticated users. This is the exact security gap the target migration is intended to close; it remains open until that migration is applied.
-- GitHub reports PR #1 and PR #2 open and mergeable. PR #2 targets PR #1's branch; GitHub has no submitted review decisions or configured checks reported for these PRs.
+- GitHub reports both PRs open. The official GitHub REST response for PR #2 at 12:06 ICT reports `mergeable=true`, `mergeable_state=clean`; the base commit is an ancestor of the head and local `git merge-tree --write-tree` finds no conflict. The Codex GitHub metadata connector concurrently returned `mergeable=false` for that same PR head, so recheck the official GitHub REST state immediately before merging. PR #2 targets PR #1's branch; there are no submitted review decisions or configured checks reported for these PRs.
 - Live GitHub Pages Home still lacks the Attendance History card. `https://kmorackbarcustom.github.io/kmo-tools/hr/attendance.html` currently returns HTTP 404. Therefore the new page is not live yet.
 - On the current PR #2 head, `node --test tests/*.test.cjs` passes. Deno is not installed in this checkout environment; the previously recorded Deno test and type-check passes were on unchanged application source (subsequent commits are documentation-only). The existing 22/22 database security test was not repeated, per Owner instruction.
 - No production SQL, migration-ledger change, merge, deploy, or Attendance write was performed during these checks.
