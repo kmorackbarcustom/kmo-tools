@@ -1,5 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  deriveAttendanceState,
+  isValidLocation,
+  normalizeRpcAttendanceError,
+} from "./attendance_state.ts";
 
 const LINE_CHANNEL_ID = "2011901861";
 const ALLOWED_ORIGIN = "https://kmorackbarcustom.github.io";
@@ -224,7 +229,11 @@ Deno.serve(async (req: Request) => {
     return json({ error: "EMPLOYEE_LOOKUP_FAILED" }, 500);
   }
 
-  if (!employee?.active || employee.employment_status !== "active") {
+  if (!employee) {
+    return json({ error: "EMPLOYEE_INACTIVE" }, 403);
+  }
+  const activeEmployee = employee;
+  if (!activeEmployee.active || activeEmployee.employment_status !== "active") {
     return json({ error: "EMPLOYEE_INACTIVE" }, 403);
   }
 
@@ -241,13 +250,14 @@ Deno.serve(async (req: Request) => {
     ]);
 
     if (scheduleResult.error) throw scheduleResult.error;
+    if (worksiteResult.error) throw worksiteResult.error;
 
     const date = bangkokDateString();
     const bounds = bangkokDayBounds(date);
     const { data: events, error: eventsError } = await db
       .from("hr_attendance_events")
       .select("id,event_type,occurred_at,distance_m")
-      .eq("employee_id", employee.id)
+      .eq("employee_id", activeEmployee.id)
       .gte("occurred_at", bounds.start)
       .lt("occurred_at", bounds.end)
       .order("occurred_at", { ascending: true });
@@ -260,9 +270,7 @@ Deno.serve(async (req: Request) => {
       attendance_status: classifyEvent(event, schedule),
     }));
 
-    const hasIn = typedEvents.some((e) => e.event_type === "clock_in");
-    const hasOut = typedEvents.some((e) => e.event_type === "clock_out");
-    const nextAction = !hasIn ? "clock_in" : !hasOut ? "clock_out" : null;
+    const attendance = deriveAttendanceState(typedEvents);
 
     const weekday = new Intl.DateTimeFormat("en-US", {
       timeZone: "Asia/Bangkok",
@@ -275,9 +283,9 @@ Deno.serve(async (req: Request) => {
     return {
       linked: true,
       employee: {
-        id: employee.id,
-        employeeCode: employee.employee_code,
-        fullName: employee.full_name,
+        id: activeEmployee.id,
+        employeeCode: activeEmployee.employee_code,
+        fullName: activeEmployee.full_name,
       },
       date,
       worksiteReady: (worksiteResult.data?.length ?? 0) > 0,
@@ -288,7 +296,7 @@ Deno.serve(async (req: Request) => {
         graceMinutes: schedule.grace_minutes,
       },
       events: typedEvents,
-      nextAction,
+      ...attendance,
     };
   }
 
@@ -305,46 +313,49 @@ Deno.serve(async (req: Request) => {
 
   if (action !== "clock") return json({ error: "INVALID_ACTION" }, 400);
 
-  const eventType = input.eventType === "clock_out" ? "clock_out"
-    : input.eventType === "clock_in" ? "clock_in"
-    : "";
   const location = input.location && typeof input.location === "object"
     ? input.location as Record<string, unknown>
     : {};
-
-  const latitude = Number(location.latitude);
-  const longitude = Number(location.longitude);
-  const accuracy = Number(location.accuracy);
-
-  if (
-    !eventType ||
-    !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
-    !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
-    !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 5000
-  ) {
+  if (!isValidLocation(location)) {
     return json({ error: "INVALID_ATTENDANCE_INPUT" }, 400);
   }
 
+  let before: Awaited<ReturnType<typeof buildStatus>>;
+  try {
+    before = await buildStatus();
+  } catch (error) {
+    console.error("pre-clock status failed", error);
+    return json({ error: "STATUS_FAILED" }, 500);
+  }
+
+  if (!before.worksiteReady) {
+    return json({ error: "WORKSITE_NOT_CONFIGURED" }, 409);
+  }
+  if (before.attendanceState === "review_required") {
+    return json({ error: "ATTENDANCE_REVIEW_REQUIRED" }, 409);
+  }
+  if (before.attendanceState === "completed") {
+    return json({ error: "ATTENDANCE_ALREADY_COMPLETE" }, 409);
+  }
+
+  const eventType = before.nextAction;
+  if (!eventType) {
+    return json({ error: "ATTENDANCE_REVIEW_REQUIRED" }, 409);
+  }
+
   const { data: eventRows, error: rpcError } = await db.rpc("hr_record_line_attendance", {
-    p_employee_id: employee.id,
+    p_employee_id: activeEmployee.id,
     p_event_type: eventType,
-    p_latitude: latitude,
-    p_longitude: longitude,
-    p_accuracy_m: accuracy,
+    p_latitude: location.latitude,
+    p_longitude: location.longitude,
+    p_accuracy_m: location.accuracy,
   });
 
   if (rpcError) {
     const message = String(rpcError.message ?? "");
-    const known = [
-      ["outside the KMO attendance geofence", "OUTSIDE_GEOFENCE"],
-      ["Location accuracy is outside", "GPS_ACCURACY_TOO_LOW"],
-      ["already been recorded", "ALREADY_RECORDED"],
-      ["Clock-in is required", "CLOCK_IN_REQUIRED"],
-      ["worksite geofence is not configured", "WORKSITE_NOT_CONFIGURED"],
-    ].find(([needle]) => message.includes(needle));
-
-    console.warn("attendance rejected", known?.[1] ?? "ATTENDANCE_REJECTED");
-    return json({ error: known?.[1] ?? "ATTENDANCE_REJECTED" }, 409);
+    const code = normalizeRpcAttendanceError(message);
+    console.warn("attendance rejected", code);
+    return json({ error: code }, 409);
   }
 
   try {
@@ -359,6 +370,7 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: true,
       event: Array.isArray(eventRows) ? eventRows[0] ?? null : eventRows,
+      statusRefreshRequired: true,
     });
   }
 });

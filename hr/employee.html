@@ -22,6 +22,7 @@
 .loader{width:34px;height:34px;border-radius:50%;border:3px solid #333;border-top-color:var(--yellow);animation:spin .8s linear infinite;margin:14px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.info{padding:12px;background:#111;border:1px solid var(--line);border-radius:10px}.info .v{font-size:16px;font-weight:700;margin-top:4px}
+.attendance-summary{padding:16px 14px;margin-bottom:14px;border:1px solid var(--yellow);border-radius:12px;background:linear-gradient(135deg,rgba(255,210,0,.12),rgba(255,210,0,.035))}.attendance-summary-title{font-size:20px;font-weight:800;line-height:1.4}.attendance-summary-detail{margin-top:4px;color:var(--muted);line-height:1.5}
 .foot{font-size:11px;color:var(--muted);line-height:1.5;margin-top:14px}
 </style>
 </head>
@@ -55,6 +56,10 @@
 </header>
 <div id="globalMsg" class="hidden" style="margin-bottom:12px"></div>
 <section class="card" style="margin-bottom:12px">
+  <div class="attendance-summary" aria-live="polite">
+    <div id="attendanceSummaryTitle" class="attendance-summary-title">กำลังโหลดสถานะ…</div>
+    <div id="attendanceSummaryDetail" class="attendance-summary-detail"></div>
+  </div>
   <div id="clockNow" class="clock-now">--:--</div>
   <div id="clockDate" class="clock-date">—</div>
   <div style="margin-top:12px"><span id="dayKind" class="pill">กำลังโหลด…</span></div>
@@ -68,6 +73,7 @@
 <section class="card"><h2 class="section-title">เวลาวันนี้</h2><div id="events" class="event-list"><div class="sub">ยังไม่มีรายการ</div></div></section>
 </section>
 </main>
+<script src="assets/attendance-errors.js"></script>
 <script>
 const LIFF_ID='2011901861-phCm6tbP';
 const API_URL='https://ybyseaenceyswjnwdmdf.supabase.co/functions/v1/kmo-hr-line';
@@ -80,13 +86,20 @@ const messages={
   LINE_ID_TOKEN_EXPIRED:'LINE Login หมดอายุ กรุณาเปิดใหม่',
   LINE_CHANNEL_MISMATCH:'LINE Login ไม่ใช่ช่องทาง KMO HR',
   EMPLOYEE_INACTIVE:'บัญชีพนักงานนี้ไม่ได้อยู่ในสถานะ Active',
-  OUTSIDE_GEOFENCE:'ตอนนี้อยู่นอกพื้นที่ลงเวลาของร้าน KMO',
-  GPS_ACCURACY_TOO_LOW:'GPS ยังคลาดเคลื่อนมากเกินไป ลองออกที่โล่ง เปิด Location ความแม่นยำสูง แล้วกดใหม่',
-  ALREADY_RECORDED:'มีการลงเวลารายการนี้แล้ว',
-  CLOCK_IN_REQUIRED:'ต้องลงเวลาเข้างานก่อนจึงจะออกงานได้',
-  WORKSITE_NOT_CONFIGURED:'ยังไม่ได้ตั้งพิกัดร้านใน HR Admin',
+  OUTSIDE_GEOFENCE:'อยู่นอกพื้นที่ลงเวลาของร้าน กรุณาลงเวลาเมื่ออยู่ที่ร้าน',
+  GPS_ACCURACY_TOO_LOW:'ตำแหน่งจากอุปกรณ์ไม่แม่นยำพอ กรุณาเปิด GPS และแนะนำให้ใช้มือถือ',
+  WORKSITE_NOT_CONFIGURED:'ระบบยังไม่ได้ตั้งพื้นที่ลงเวลา กรุณาติดต่อ Admin',
+  INVALID_ATTENDANCE_INPUT:'ข้อมูลตำแหน่งไม่ถูกต้อง กรุณาเปิด Location แล้วลองใหม่',
+  ATTENDANCE_ALREADY_COMPLETE:'วันนี้ลงเวลาครบแล้ว',
+  ATTENDANCE_STATE_CHANGED:'สถานะลงเวลาเปลี่ยนไปแล้ว อัปเดตข้อมูลล่าสุดแล้ว กรุณาตรวจสอบก่อนลองอีกครั้ง',
+  ATTENDANCE_REVIEW_REQUIRED:'สถานะเวลาวันนี้ต้องตรวจสอบ กรุณาติดต่อ Admin',
   ATTENDANCE_REJECTED:'ระบบไม่รับการลงเวลาครั้งนี้ กรุณาติดต่อ Admin',
-  STATUS_FAILED:'โหลดสถานะวันนี้ไม่สำเร็จ'
+  STATUS_FAILED:'โหลดสถานะวันนี้ไม่สำเร็จ',
+  GEO_UNSUPPORTED:'อุปกรณ์นี้ไม่รองรับการอ่านตำแหน่ง',
+  GEO_PERMISSION_DENIED:'ยังไม่ได้อนุญาตตำแหน่ง กรุณาเปิดสิทธิ Location ให้ LINE/Browser แล้วลองใหม่',
+  GEO_UNAVAILABLE:'อ่านตำแหน่งไม่ได้ กรุณาเปิด GPS/Location แล้วลองใหม่',
+  GEO_TIMEOUT:'อ่านตำแหน่งนานเกินไป กรุณาลองใหม่ หรือใช้มือถือที่เปิด GPS',
+  ATTENDANCE_REQUEST_FAILED:'ลงเวลาไม่สำเร็จ กรุณาลองใหม่หรือติดต่อ Admin'
 };
 const labels={on_time:'ตรงเวลา',grace:'Grace',late:'สาย',early_leave:'ออกก่อนเวลา',clocked_out:'ออกงานแล้ว',after_hours_review:'หลังเวลา — รอตรวจ OT'};
 
@@ -101,10 +114,10 @@ $('reloadBtn').addEventListener('click',()=>location.reload());
 
 async function callApi(body){
   const idToken=liff.getIDToken();
-  if(!idToken) throw new Error('LINE_ID_TOKEN_REQUIRED');
+  if(!idToken){const error=new Error('LINE_ID_TOKEN_REQUIRED');error.code='LINE_ID_TOKEN_REQUIRED';throw error}
   const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,idToken})});
   const data=await res.json().catch(()=>({error:'BAD_RESPONSE'}));
-  if(!res.ok) throw new Error(data.error||'REQUEST_FAILED');
+  if(!res.ok){const error=new Error(data.error||'ATTENDANCE_REQUEST_FAILED');error.code=data.error||'ATTENDANCE_REQUEST_FAILED';throw error}
   return data;
 }
 
@@ -116,6 +129,22 @@ function render(data){
   $('workEnd').textContent=String(data.schedule?.workEnd||'—').slice(0,5);
   $('dayKind').textContent=data.dayKind==='weekly_holiday'?'วันหยุดประจำสัปดาห์':'วันทำงาน';
 
+  const summaryTitle=$('attendanceSummaryTitle');
+  const summaryDetail=$('attendanceSummaryDetail');
+  if(data.attendanceState==='not_clocked_in'){
+    summaryTitle.textContent='วันนี้ยังไม่ได้เข้างาน';
+    summaryDetail.textContent='';
+  }else if(data.attendanceState==='working'){
+    summaryTitle.textContent='เข้างานแล้ว '+fmtTime(data.clockInAt);
+    summaryDetail.textContent='รอลงเวลาออก';
+  }else if(data.attendanceState==='completed'){
+    summaryTitle.textContent='วันนี้ลงเวลาครบแล้ว';
+    summaryDetail.textContent='เข้า '+fmtTime(data.clockInAt)+' · ออก '+fmtTime(data.clockOutAt);
+  }else{
+    summaryTitle.textContent='สถานะเวลาวันนี้ต้องตรวจสอบ';
+    summaryDetail.textContent='กรุณาติดต่อ Admin ก่อนลงเวลา';
+  }
+
   const events=Array.isArray(data.events)?data.events:[];
   $('events').innerHTML=events.length?events.map(e=>{
     const isIn=e.event_type==='clock_in';
@@ -125,9 +154,10 @@ function render(data){
 
   const b=$('clockBtn');
   if(!data.worksiteReady){b.disabled=true;b.textContent='ยังไม่ได้ตั้งพิกัดร้าน'}
-  else if(data.nextAction==='clock_in'){b.disabled=false;b.textContent='ลงเวลาเข้างาน'}
-  else if(data.nextAction==='clock_out'){b.disabled=false;b.textContent='ลงเวลาออกงาน'}
-  else{b.disabled=true;b.textContent='ลงเวลาวันนี้ครบแล้ว'}
+  else if(data.attendanceState==='review_required'){b.disabled=true;b.textContent='รอตรวจสอบสถานะ'}
+  else if(data.nextAction==='clock_in'){b.disabled=false;b.textContent='ลงเวลาเข้า'}
+  else if(data.nextAction==='clock_out'){b.disabled=false;b.textContent='ลงเวลาออก'}
+  else{b.disabled=true;b.textContent='ลงเวลาครบแล้ว'}
   show('portalView');
 }
 
@@ -137,28 +167,49 @@ function position(){
     navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:15000,maximumAge:0});
   });
 }
+async function refreshAfterConflict(code){
+  try{
+    const fresh=await callApi({action:'status'});
+    if(!fresh.linked){location.reload();return false}
+    render(fresh);
+    msg(messages[code]||messages.ATTENDANCE_STATE_CHANGED,'notice');
+    return true;
+  }catch(error){
+    console.error('attendance status refresh failed',error);
+    $('clockBtn').disabled=true;
+    $('clockBtn').textContent='ตรวจสอบสถานะก่อนลงเวลา';
+    msg('อัปเดตสถานะล่าสุดไม่ได้ กรุณาโหลดหน้าใหม่ก่อนลองลงเวลาอีกครั้ง','notice');
+    return false;
+  }
+}
 $('clockBtn').addEventListener('click',async()=>{
   clearMsg();
-  const type=state?.nextAction;
-  if(!type)return;
+  if(!state?.nextAction||state.attendanceState==='review_required')return;
   const b=$('clockBtn');
-  const old=b.textContent;
   b.disabled=true;
   b.textContent='กำลังตรวจตำแหน่ง…';
   try{
     const p=await position();
     b.textContent='กำลังบันทึกเวลา…';
-    const data=await callApi({action:'clock',eventType:type,location:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}});
+    const data=await callApi({action:'clock',location:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}});
+    if(data.statusRefreshRequired){
+      if(await refreshAfterConflict('ATTENDANCE_STATE_CHANGED')){
+        msg('บันทึกเวลาแล้ว ระบบอัปเดตสถานะล่าสุดแล้ว','ok');
+      }
+      return;
+    }
     render(data);
-    msg(type==='clock_in'?'ลงเวลาเข้างานเรียบร้อย':'ลงเวลาออกงานเรียบร้อย','ok');
+    const savedType=data.event?.event_type;
+    const clockedOut=savedType==='clock_out'||data.attendanceState==='completed';
+    msg(clockedOut?'ลงเวลาออกเรียบร้อย':'ลงเวลาเข้าเรียบร้อย','ok');
   }catch(err){
-    const code=err?.message||'REQUEST_FAILED';
-    if(code==='GEO_UNSUPPORTED')msg('อุปกรณ์นี้ไม่รองรับ Location');
-    else if(code==='1')msg('ไม่ได้รับอนุญาตใช้ Location กรุณาเปิดสิทธิ Location ให้ LINE/Browser');
-    else if(code==='2'||code==='3')msg('อ่านตำแหน่งไม่สำเร็จ ลองเปิด GPS แล้วกดใหม่');
-    else msg(messages[code]||('ลงเวลาไม่สำเร็จ: '+code));
-    b.disabled=false;
-    b.textContent=old;
+    const code=normalizeAttendanceErrorCode(err);
+    if(code==='ATTENDANCE_STATE_CHANGED'||code==='ATTENDANCE_ALREADY_COMPLETE'||code==='ATTENDANCE_REVIEW_REQUIRED'){
+      await refreshAfterConflict(code);
+      return;
+    }
+    if(state)render(state);
+    msg(messages[code]||messages.ATTENDANCE_REQUEST_FAILED);
   }
 });
 
