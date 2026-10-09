@@ -8,7 +8,7 @@ Date: 2026-10-09 (Asia/Bangkok)
 - Manual logical backup: **PASS** — read-only export completed through the Supabase Session Pooler. Backup artifacts and SHA-256 inventory are stored in a private FileVault-protected location outside Git.
 - Isolated restore: **PASS for the tested database and Storage scope**, with the version and project-configuration limits below.
 - Independent review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The fresh reviewer rechecked the backup/restore totals, Production catalog/ledger, one-migration procedure, and the reported PR-status discrepancy.
-- Production release: **HOLD / in progress**. The user has now asked to continue through live release, superseding the earlier prepare-only direction. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment has been performed; the secure Session Pooler URL is still needed for the controlled CLI operation.
+- Production release: **HOLD / in progress**. The user has asked to continue toward live release, but the earlier Owner decision explicitly withheld Production Write approval; the new request is not recorded as separate Owner approval. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment has been performed. The secure Session Pooler URL is still needed for the controlled CLI preflight.
 - Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. Both the original Local Test environment and this separate restore environment remain intact.
 
 ## Backup evidence
@@ -71,7 +71,7 @@ After a reviewer pass and explicit Owner Production Write approval, verify effec
 
 Independent review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. The fresh review also checked the latest Production catalog/ledger evidence and confirmed the PR #2 mergeability discrepancy is presented as unresolved rather than overstated. Capture-window and component-version limitations remain disclosed. The review did not perform or approve a Production write.
 
-Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions have now been checked directly against the Production catalog and match the intended forward-only change. Production release remains **HOLD** until the secure connection file is populated, the CLI confirms the ledger and only the target migration is pending, and the live post-migration security verification passes. No Production Attendance test row will be written.
+Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions have now been checked directly against the Production catalog and match the intended forward-only change. Production release remains **HOLD** until the secure connection file is populated, the CLI confirms the ledger and only the target migration is pending, and the Owner explicitly approves Production Write. After approval, verify grants, RLS, policies, and RPC privileges; no Production Attendance test row will be written.
 
 ## References
 
