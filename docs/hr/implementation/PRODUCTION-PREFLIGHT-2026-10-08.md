@@ -7,7 +7,7 @@ Date: 2026-10-09 (Asia/Bangkok)
 - Managed backups: **HOLD / unavailable** — the Supabase organization is on the Free plan; scheduled managed backups are unavailable on this plan.
 - Manual logical backup: **PASS** — read-only export completed through the Supabase Session Pooler. Backup artifacts and SHA-256 inventory are stored in a private FileVault-protected location outside Git.
 - Isolated restore: **PASS for the tested database and Storage scope**, with the version and project-configuration limits below.
-- Independent review: **PENDING**.
+- Independent review: **HOLD / pending final review** — the first review attempt could not locate this checkout; a second review is requested with the exact workspace path.
 - Production release: **HOLD**. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment was performed. Owner Production Write approval has not been given.
 - Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. Both the original Local Test environment and this separate restore environment remain intact.
 
@@ -45,17 +45,19 @@ The four existing KMO HR Production history entries map to current source files 
 
 The Production timestamps differ from the current source filenames; this is a name mapping, not proof that each historical migration was byte-identical to the current file. The Production schema was dumped and restored, and the restored catalog checks above matched Production. A complete source-to-live schema reconciliation against every migration remains **unverified**.
 
-## Proposed Security Migration procedure — not executed
+## Security Migration procedure — tested in Local, not executed in Production
 
 Target file: `supabase/migrations/20261008053722_hr_attendance_service_role_only.sql`.
 
-Do not run `supabase db push`, replay any of the four historical migrations, or manually edit the Production migration ledger. The available Supabase migration connector accepts a migration name and SQL but no explicit migration version/timestamp. With the known timestamp mismatch, its ledger result has not been proven. No Production apply mechanism is selected until the exact version/name recording behavior is verified against a separate disposable Supabase environment.
+Do not run `supabase db push`, replay any of the four historical migrations, or manually edit the Production migration ledger. The Supabase CLI `migration up --db-url` path was tested against a disposable Local database populated with the 14 existing Production migration-history rows and a minimal Attendance table. The temporary workdir contained only the Security Migration and fail-fast marker files for already-applied Production versions. The command applied exactly one new migration and recorded `20261008053722 | hr_attendance_service_role_only`; the ledger count increased from 14 to 15. The isolated privilege check returned INSERT denied for `anon` and `authenticated`, and allowed for `service_role`. The fail-fast markers ensure that an unexpected attempt to replay a prior migration stops the command.
 
-After that verification, a reviewer pass, and explicit Owner Production Write approval, apply only this Security Migration using a single-migration operation that records the exact intended version/name. Verify effective grants including inherited/PUBLIC privileges, RLS enablement, policies, and RPC execution privileges through read-only catalog checks. Do not create test Attendance rows. If any verification fails, stop release and keep Direct INSERT denied.
+For the eventual Production operation, prepare a temporary workdir containing the exact Security Migration plus fail-fast marker files named for every currently recorded Production version. Connect through the Session Pooler URL with TLS and run only `supabase migration up --db-url <Session-Pooler-URL> --workdir <single-migration-workdir>` without `--include-all` or `--linked`. Proceed only if the preflight confirms all prior versions are already recorded and the only pending file is `20261008053722_hr_attendance_service_role_only.sql`. This makes the CLI record the exact version from the filename and causes any unexpected attempt to apply an older marker to abort. The procedure has been validated only against the disposable Local database; it has **not** been run against Production.
+
+After a reviewer pass and explicit Owner Production Write approval, verify effective grants including inherited/PUBLIC privileges, RLS enablement, policies, and RPC execution privileges through read-only catalog checks. Do not create test Attendance rows. If any verification fails, stop release and keep Direct INSERT denied.
 
 ## Independent review and Owner decision
 
-The independent reviewer must inspect the backup/restore evidence, source migration mapping, and proposed single-migration procedure. This report will be updated with the review result before requesting Production Write approval.
+The independent reviewer must inspect the backup/restore evidence, source migration mapping, and tested single-migration procedure. The first review attempt returned HOLD because its workspace could not locate the report or backup manifest. A second review is requested with the exact checkout and manifest paths. This report will be updated with the result before requesting Production Write approval.
 
 **Owner approval requested:** approve the later Production release only after the independent review passes and a version-safe single-migration/ledger procedure is established. This preflight does not authorize a Production write.
 
