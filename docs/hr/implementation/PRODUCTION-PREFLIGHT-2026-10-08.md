@@ -7,8 +7,8 @@ Date: 2026-10-09 (Asia/Bangkok)
 - Managed backups: **HOLD / unavailable** — the Supabase organization is on the Free plan; scheduled managed backups are unavailable on this plan.
 - Manual logical backup: **PASS** — read-only export completed through the Supabase Session Pooler. Backup artifacts and SHA-256 inventory are stored in a private FileVault-protected location outside Git.
 - Isolated restore: **PASS for the tested database and Storage scope**, with the version and project-configuration limits below.
-- Independent review: **PASS** at report commit `10c5460f8d145046a3cb7c4ac3f199b64f51a0fb`. The reviewer confirmed the evidence totals, checksum inventory, migration-name mapping, procedure probe, and stated limits.
-- Production release: **HOLD**. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment was performed. Owner Production Write approval has not been given.
+- Independent review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The fresh reviewer rechecked the backup/restore totals, Production catalog/ledger, one-migration procedure, and the reported PR-status discrepancy.
+- Production release: **HOLD / in progress**. The user has now asked to continue through live release, superseding the earlier prepare-only direction. No Production migration, migration-ledger edit, Attendance test write, merge, or deployment has been performed; the secure Session Pooler URL is still needed for the controlled CLI operation.
 - Existing Supabase Local Test result remains **22/22 PASS**; it was not rerun. Both the original Local Test environment and this separate restore environment remain intact.
 
 ## Backup evidence
@@ -50,7 +50,7 @@ The Production timestamps differ from the current source filenames; this is a na
 - Supabase Management API reports project `ybyseaenceyswjnwdmdf` as `ACTIVE_HEALTHY`, PostgreSQL 17.6.1, in `ap-northeast-2`.
 - Production migration history still contains 14 entries, including the four HR versions listed above. The target version `20261008053722` is not applied.
 - Catalog checks confirm `public.hr_attendance_events` exists with RLS enabled. Effective INSERT is denied to `anon`, allowed to `authenticated`, and allowed to `service_role`. The `hr_attendance_insert` policy is still present for authenticated users. This is the exact security gap the target migration is intended to close; it remains open until that migration is applied.
-- GitHub reports both PRs open. The official GitHub REST response for PR #2 at 12:06 ICT reports `mergeable=true`, `mergeable_state=clean`; the base commit is an ancestor of the head and local `git merge-tree --write-tree` finds no conflict. The Codex GitHub metadata connector concurrently returned `mergeable=false` for that same PR head, so recheck the official GitHub REST state immediately before merging. PR #2 targets PR #1's branch; there are no submitted review decisions or configured checks reported for these PRs.
+- GitHub reports both PRs open. At 12:06 ICT, the official GitHub REST response for PR #2 head `62468085d2f24193c9270dc32d1cd238c9da1b16` reported `mergeable=true`, `mergeable_state=clean`; the base commit is an ancestor of that head and local `git merge-tree --write-tree` found no conflict. The Codex GitHub metadata connector returned `mergeable=false` for the same head. Subsequent commits changed PR #2 documentation only; GitHub's mergeability state must be checked again at the final head immediately before merging. PR #2 targets PR #1's branch; there are no submitted review decisions or configured checks reported for these PRs.
 - Live GitHub Pages Home still lacks the Attendance History card. `https://kmorackbarcustom.github.io/kmo-tools/hr/attendance.html` currently returns HTTP 404. Therefore the new page is not live yet.
 - On the current PR #2 head, `node --test tests/*.test.cjs` passes. Deno is not installed in this checkout environment; the previously recorded Deno test and type-check passes were on unchanged application source (subsequent commits are documentation-only). The existing 22/22 database security test was not repeated, per Owner instruction.
 - No production SQL, migration-ledger change, merge, deploy, or Attendance write was performed during these checks.
@@ -69,11 +69,9 @@ After a reviewer pass and explicit Owner Production Write approval, verify effec
 
 ## Independent review and Owner decision
 
-Independent review: **PASS** at report commit `10c5460f8d145046a3cb7c4ac3f199b64f51a0fb`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. The reviewer also confirmed that capture-window and component-version limitations are disclosed. The reviewer did not approve a Production write.
+Independent review: **PASS** at report commit `58798fc5a559fb36f3db471243f01c7d43fc4e25`. The reviewer confirmed the private inventory contains 60 checksum-verified files / 7,048,332 bytes, the 53 Storage objects / 5,753,442 bytes, the four name-based migration mappings, and the Local-only CLI ledger probe. The fresh review also checked the latest Production catalog/ledger evidence and confirmed the PR #2 mergeability discrepancy is presented as unresolved rather than overstated. Capture-window and component-version limitations remain disclosed. The review did not perform or approve a Production write.
 
-Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions have now been checked directly against the Production catalog and match the intended forward-only change. Production release remains **HOLD** until the controlled migration procedure has a ready credential and the Owner explicitly authorizes the Production write.
-
-**Owner approval request:** not sent yet. It will be prepared after the source-to-live schema reconciliation is resolved. This preflight does not authorize a Production write.
+Historical migration SQL has not been proven byte-identical to current source; the four history entries are mapped by name. The target migration preconditions have now been checked directly against the Production catalog and match the intended forward-only change. Production release remains **HOLD** until the secure connection file is populated, the CLI confirms the ledger and only the target migration is pending, and the live post-migration security verification passes. No Production Attendance test row will be written.
 
 ## References
 
